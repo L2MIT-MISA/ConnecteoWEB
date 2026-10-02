@@ -1,0 +1,199 @@
+/*
+   PANNEAU ITINÉRAIRE
+ */
+.itineraire-panel {
+    position: absolute;
+    bottom: 30px;
+    right: 90px;
+    z-index: 1000;
+    font-family: inherit;
+}
+
+.itineraire-toggle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: 0;
+    background: #4a5a50;
+    color: #ffffff;
+    font-size: 26px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.itineraire-toggle:hover {
+    background: #5c6f63;
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+.itineraire-contenu {
+    width: 340px;
+    background: #2a332d;
+    border: 1px solid #3d4a42;
+    border-radius: 12px;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+    padding: 18px;
+    animation: slideUp 0.25s ease;
+    color: #ffffff;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.itineraire-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #3d4a42;
+}
+
+.itineraire-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #ffffff;
+}
+
+.itineraire-fermer {
+    background: transparent;
+    border: 0;
+    font-size: 18px;
+    color: #8fa398;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+
+.itineraire-fermer:hover {
+    background: #3a453e;
+    color: #ffffff;
+}
+
+.itineraire-champ {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #1f2723;
+    border: 1px solid #3d4a42;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: border-color 0.15s;
+}
+
+.itineraire-champ:focus-within {
+    border-color: #6fbf8b;
+    background: #232b27;
+}
+
+.itineraire-champ .icone {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.itineraire-champ input {
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 14px;
+    color: #ffffff;
+    font-family: inherit;
+}
+
+.itineraire-champ input::placeholder {
+    color: #8fa398;
+}
+
+.itineraire-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.btn-calculer,
+.btn-effacer {
+    flex: 1;
+    padding: 11px;
+    border-radius: 8px;
+    border: 0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.btn-calculer {
+    background: #4a5a50;
+    color: #ffffff;
+}
+
+.btn-calculer:hover:not(:disabled) {
+    background: #5c6f63;
+}
+
+.btn-effacer {
+    background: #3a453e;
+    color: #d5e0d8;
+}
+
+.btn-effacer:hover {
+    background: #4a5a50;
+    color: #ffffff;
+}
+
+.itineraire-infos {
+    margin-top: 14px;
+    padding: 12px;
+    background: #1f2723;
+    border: 1px solid #3d4a42;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.info-ligne {
+    margin: 4px 0;
+    color: #d5e0d8;
+}
+
+.itineraire-erreur {
+    margin-top: 14px;
+    padding: 12px;
+    background: #3a2222;
+    border: 1px solid #5c3030;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #ff9999;
+}
+
+.itineraire-credit {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #3d4a42;
+    font-size: 11px;
+    color: #8fa398;
+    text-align: center;
+}
+
+.btn-calculer:disabled {
+    background: #3a453e;
+    color: #7a8a80;
+    cursor: not-allowed;
+}
