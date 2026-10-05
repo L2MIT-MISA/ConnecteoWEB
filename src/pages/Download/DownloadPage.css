@@ -1,83 +1,217 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+.dl-root {
+  --dl-navy: #0b1437;
+  --dl-blue: #2f4bff;
+  --dl-text: #0b1437;
+  --dl-muted: #6b7596;
+  --dl-line: #e3e8f5;
 
-/* Animation du petit point qui clignote dans le badge "Version 2.4.1" */
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--dl-text);
+  line-height: 1.5;
+  box-sizing: border-box;
+  /* un seul dégradé continu sur les deux sections, comme la maquette */
+  background: linear-gradient(180deg, #f1f6ff 0%, #f9fbff 55%, #eef3fd 100%);
+}
+.dl-root *,
+.dl-root *::before,
+.dl-root *::after {
+  box-sizing: inherit;
+}
 
-/* Conteneur général de la page + image de fond */
-#page-download { position: relative; background: #101712; color: #f5f1e8; font-family: 'DM Sans', system-ui, sans-serif; overflow-x: hidden; }
-#downloadScene { position: fixed; inset: 0; z-index: 0; background-image: url('/images/downloag.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat; background-color: #101712; }
+.dl-container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
 
-#page-download .content { position: relative; z-index: 5; max-width: 1100px; margin: 0 auto; padding: 160px 28px 80px; }
+/* ---------- Section plateformes ---------- */
+.dl-platforms {
+  padding: 64px 0 72px;
+  text-align: center;
+}
 
-/* En-tête (titre + sous-titre) */
-#page-download .hero-section { text-align: center; margin-bottom: 70px; }
-#page-download .badge { display: inline-flex; align-items: center; gap: 9px; background: rgba(214,201,143,.15); border: 1px solid rgba(214,201,143,.3); border-radius: 999px; padding: 7px 18px 7px 13px; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(246,240,224,.9); margin-bottom: 26px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-#page-download .badge .dot { width: 7px; height: 7px; background: #d6c98f; border-radius: 50%; box-shadow: 0 0 10px rgba(214,201,143,.8); animation: blink 2s ease-in-out infinite; }
-#page-download .hero-section h1 { font-family: 'Manrope', sans-serif; font-size: clamp(2.4rem, 5.5vw, 4rem); line-height: 1.05; letter-spacing: -.05em; font-weight: 700; margin-bottom: 18px; color: #fff; text-shadow: 0 5px 35px rgba(0,0,0,.6); }
-#page-download .hero-section h1 .accent { color: #e7dfc9; }
-#page-download .hero-section p { font-size: clamp(.95rem, 1.4vw, 1.08rem); font-weight: 400; color: rgba(250,246,236,.85); max-width: 600px; margin: 0 auto; line-height: 1.65; text-shadow: 0 3px 18px rgba(0,0,0,.7); }
+.dl-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dl-blue);
+}
+.dl-eyebrow::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: currentColor;
+}
 
-/* Bloc "téléphone + bouton de téléchargement" */
-#page-download .phone-section { display: flex; align-items: center; justify-content: center; gap: 72px; margin-bottom: 90px; flex-wrap: wrap; }
-#page-download .phone-mockup { width: 280px; flex-shrink: 0; }
-#page-download .phone-frame { background: rgba(12,20,15,.55); border: 1px solid rgba(238,230,208,.22); border-radius: 38px; padding: 12px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 24px 60px rgba(0,0,0,.5), inset 0 1px 0 rgba(238,230,208,.08); }
-#page-download .phone-screen { background: linear-gradient(180deg, #1a2218 0%, #0d1310 100%); border-radius: 28px; height: 520px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; position: relative; overflow: hidden; padding: 30px 22px; }
-#page-download .phone-screen::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100px; height: 22px; background: #0d1310; border-radius: 0 0 14px 14px; }
-#page-download .app-logo { width: 54px; height: 54px; border-radius: 50%; border: 1px solid rgba(238,230,208,.55); position: relative; display: flex; align-items: center; justify-content: center; margin-top: 6px; }
-#page-download .app-logo::before, #page-download .app-logo::after { content: ""; position: absolute; border: 1px solid rgba(238,230,208,.6); border-radius: 50%; }
-#page-download .app-logo::before { inset: 11px; }
-#page-download .app-logo::after { inset: 21px; }
-#page-download .app-name { font-family: 'Manrope', sans-serif; font-size: 1.05rem; font-weight: 700; letter-spacing: -.02em; color: #fff; margin-top: -6px; }
-#page-download .app-tagline { font-size: .7rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(246,240,224,.55); margin-top: -16px; margin-bottom: 8px; }
-#page-download .qr-wrapper { background: #f5f1e8; border-radius: 16px; padding: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(238,230,208,.15); }
-#page-download .qr-wrapper svg { display: block; width: 150px; height: 150px; }
-#page-download .qr-caption { font-size: .72rem; font-weight: 500; color: rgba(246,240,224,.55); text-align: center; letter-spacing: .04em; margin-top: -6px; }
+.dl-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 1.875rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--dl-text);
+}
+.dl-title--left { text-align: left; }
 
-/* Colonne de droite : titre + texte + bouton de téléchargement */
-#page-download .download-col { display: flex; flex-direction: column; gap: 20px; align-items: flex-start; max-width: 420px; }
-#page-download .download-col h2 { font-family: 'Manrope', sans-serif; font-size: 1.7rem; font-weight: 700; letter-spacing: -.03em; margin-bottom: 4px; color: #fff; text-shadow: 0 3px 20px rgba(0,0,0,.6); }
-#page-download .download-col .sub { font-size: .95rem; font-weight: 400; color: rgba(250,246,236,.85); line-height: 1.65; text-shadow: 0 3px 18px rgba(0,0,0,.7); }
+.dl-subtitle {
+  margin: 10px auto 0;
+  max-width: 52ch;
+  font-size: 0.8125rem;
+  color: var(--dl-muted);
+}
+.dl-subtitle--left { margin-left: 0; text-align: left; }
 
-/* Le bouton de téléchargement lui-même */
-#page-download .apk-btn { display: inline-flex; align-items: center; gap: 12px; background: #e7dfc9; color: #152019; border: 0; border-radius: 12px; padding: 15px 26px; font-family: 'DM Sans', sans-serif; font-size: .92rem; font-weight: 700; text-decoration: none; cursor: pointer; transition: transform .25s ease, background .25s ease; margin-top: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.3); }
-#page-download .apk-btn:hover { transform: translateY(-2px); background: #fff8e7; }
-#page-download .apk-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
-#page-download .apk-info { font-size: .78rem; font-weight: 500; color: rgba(250,246,236,.6); margin-top: 4px; letter-spacing: .02em; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+/* ---------- Cartes ---------- */
+.dl-grid {
+  list-style: none;
+  margin: 32px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.dl-grid[data-count="1"] {
+  grid-template-columns: minmax(0, 340px);
+  justify-content: center;
+}
+.dl-grid[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 340px));
+  justify-content: center;
+}
 
-/* Section "fonctionnalités" (cartes informatives) */
-#page-download .features-title { font-family: 'Manrope', sans-serif; text-align: center; font-size: 1.4rem; font-weight: 700; letter-spacing: -.02em; margin-bottom: 40px; color: #fff; text-shadow: 0 3px 20px rgba(0,0,0,.6); }
-#page-download .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin-bottom: 80px; }
-#page-download .feature-card { background: rgba(255,255,255,.05); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); border: 1px solid rgba(255,255,255,.12); border-radius: 20px; padding: 28px 24px; transition: all .3s ease; }
-#page-download .feature-card:hover { background: rgba(255,255,255,.1); border-color: rgba(231,223,201,.4); transform: translateY(-2px); }
-#page-download .feature-card .icon { width: 44px; height: 44px; background: rgba(214,201,143,.15); border: 1px solid rgba(214,201,143,.3); border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
-#page-download .feature-card .icon svg { width: 22px; height: 22px; color: #d6c98f; stroke: #d6c98f; }
-#page-download .feature-card h3 { font-family: 'Manrope', sans-serif; font-size: 1rem; font-weight: 700; margin-bottom: 6px; color: #fff; letter-spacing: -.01em; }
-#page-download .feature-card p { font-size: .82rem; font-weight: 400; color: rgba(250,246,236,.6); line-height: 1.55; }
+.dl-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20px;
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--dl-line);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(11, 20, 55, 0.07);
+}
+/* surbrillance optionnelle (prop highlight) */
+.dl-card--current {
+  border-color: var(--dl-blue);
+  box-shadow: 0 0 0 2px rgba(47, 75, 255, 0.18), 0 8px 28px rgba(11, 20, 55, 0.07);
+}
 
-/* Section "prérequis techniques" */
-#page-download .req-section { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 60px; }
-#page-download .req-card { flex: 1; min-width: 240px; background: rgba(255,255,255,.05); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 26px 24px; }
-#page-download .req-card h4 { font-family: 'Manrope', sans-serif; font-size: .82rem; font-weight: 700; color: #d6c98f; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 14px; }
-#page-download .req-card ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
-#page-download .req-card li { font-size: .85rem; font-weight: 400; color: rgba(250,246,236,.65); display: flex; align-items: center; gap: 10px; line-height: 1.4; }
-#page-download .req-card li::before { content: ''; width: 5px; height: 5px; background: #d6c98f; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 8px rgba(214,201,143,.5); }
+.dl-card__logo {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 14px;
+  color: #fff;
+  background: var(--dl-logo-bg, var(--dl-blue));
+  border-radius: 10px;
+}
+.dl-card__logo svg { width: 18px; height: 18px; }
 
-/* Pied de page */
-#page-download footer { position: relative; z-index: 5; text-align: center; padding: 32px 24px; background: rgba(255,255,255,.05); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); border-top: 1px solid rgba(255,255,255,.12); }
-#page-download footer p { font-size: .78rem; font-weight: 400; color: rgba(250,246,236,.55); letter-spacing: .02em; }
+.dl-card__name {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.dl-card__req {
+  margin: 2px 0 18px;
+  font-size: 0.75rem;
+  color: var(--dl-muted);
+}
 
-/* Adaptation mobile */
-@media (max-width: 700px) {
-  #page-download .content { padding: 130px 20px 60px; }
-  #page-download .phone-section { gap: 44px; margin-bottom: 70px; }
-  #page-download .phone-mockup { width: 240px; }
-  #page-download .phone-screen { height: 460px; gap: 18px; padding: 26px 18px; }
-  #page-download .qr-wrapper svg { width: 130px; height: 130px; }
-  #page-download .download-col { align-items: center; text-align: center; }
-  #page-download .download-col h2 { font-size: 1.4rem; }
-  #page-download .download-col .sub { font-size: .88rem; }
-  #page-download .apk-btn { width: 100%; justify-content: center; }
-  #page-download .hero-section h1 { font-size: clamp(2rem, 9vw, 3rem); }
-  #page-download .hero-section p { font-size: .92rem; }
-  #page-download .req-section { flex-direction: column; }
+/* ---------- Bouton ---------- */
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--dl-text);
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid var(--dl-line);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.dl-btn:hover {
+  border-color: var(--dl-blue);
+  color: var(--dl-blue);
+}
+.dl-btn:focus-visible {
+  outline: 3px solid var(--dl-blue);
+  outline-offset: 2px;
+}
+.dl-btn__icon { width: 14px; height: 14px; flex: none; }
+
+/* ---------- Section QR code ---------- */
+.dl-qr { padding: 24px 0 72px; }
+.dl-qr__inner {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+.dl-qr__box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--dl-line);
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(11, 20, 55, 0.07);
+}
+.dl-qr__box svg { display: block; max-width: 100%; height: auto; }
+.dl-qr__text { flex: 1; min-width: 0; }
+.dl-eyebrow--left { margin-bottom: 10px; }
+
+.dl-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 0;
+  font-size: 0.6875rem;
+  color: var(--dl-muted);
+}
+.dl-note__icon { width: 14px; height: 14px; color: var(--dl-blue); flex: none; }
+
+/* ---------- Attente de détection ---------- */
+.dl-wait {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  font-size: 0.875rem;
+  color: var(--dl-muted);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 820px) {
+  .dl-grid,
+  .dl-grid[data-count="2"] {
+    grid-template-columns: minmax(0, 420px);
+    justify-content: center;
+  }
+  .dl-qr__inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 28px;
+  }
+  .dl-title--left,
+  .dl-subtitle--left { text-align: center; margin-left: auto; }
+  .dl-note { justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dl-btn { transition: none; }
 }
