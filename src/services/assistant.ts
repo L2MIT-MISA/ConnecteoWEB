@@ -32,4 +32,8 @@ export async function askAssistant(query: string): Promise<AssistantResponse> {
   });
   if (!response.ok) throw new Error("Assistant indisponible");
   return response.json();
+  await new Promise((r) => setTimeout(r, 600)); //simule la réflexion
+  return FLOWS[detectFlow(query)];
+
+  //fetch vers l'IA 
 }

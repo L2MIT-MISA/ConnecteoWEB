@@ -78,16 +78,14 @@ export default function SearchPage() {
     setLoading(true);
     setError("");
     try {
-      // La détresse passe avant toute recherche de lieu
       if (!isDistress(query)) {
         const parsed = await parseSearchQuery(query);
         if (parsed.category) {
           addMessage({ from: "ai", text: `Voici les résultats pour « ${query} ».` });
-          runSearch(parsed); // loading est remis à false par le useEffect
+          runSearch(parsed); 
           return;
         }
       }
-      // Phrase vague : l'assistant prend tout le panneau avec ses suggestions
       const response = await askAssistant(query);
       addMessage({ from: "ai", text: response.question, options: response.options });
       setView("assistant");
