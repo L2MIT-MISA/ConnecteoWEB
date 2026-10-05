@@ -30,7 +30,6 @@ export default function Home() {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [closeSearch, searchActive]);
 
-  // L'utilisateur tape n'importe quoi -> l'assistant répond avec des suggestions
   async function handleSearch(query: string) {
     setLoading(true);
     setError("");
@@ -43,12 +42,11 @@ export default function Home() {
     setLoading(false);
   }
 
-  // Clic sur une suggestion
+  //Clic sur une suggestion
   function chooseOption(opt: AssistantOption) {
     if (opt.action === "close") { setAssistant(null); return; }
 
     if (opt.action === "sos-send") {
-      // TODO : brancher la vraie alerte. Pour l'instant c'est une simulation.
       setAssistant({ question: "Alerte envoyée. Vos contacts ont été prévenus.", options: [] });
       window.setTimeout(() => setAssistant(null), 1800);
       return;
@@ -56,7 +54,6 @@ export default function Home() {
 
     if (opt.ask) { handleSearch(opt.ask); return; }
 
-    // Sinon : on va sur la carte (même format qu'avant pour la page Search)
     sessionStorage.setItem(
       "connecteo-search",
       JSON.stringify({

@@ -3,6 +3,7 @@
 //
 // Routes simulées (mêmes chemins et mêmes formats que le vrai projet) :
 //   POST /functions/v1/search   -> edge function Supabase "search" (analyse de la requête)
+//   POST /assistant             -> IA qui pose des questions (boite de decision) : scenarios dans assistant-flows.mjs
 //   POST /search                -> backend Python (liste des lieux + connectivité)
 //   GET  /api/pylones/bbox      -> backend Python + Neo4j (pylônes dans une zone)
 //   GET  /api/pylones           -> backend Python + Neo4j (tous les pylônes)
@@ -24,37 +25,12 @@ const DELAY_MS = process.env.DELAY_MS !== undefined ? Number(process.env.DELAY_M
 const STRICT = process.env.MOCK_STRICT !== "0";
 
 // ---------------------------------------------------------------------------
-// 1) Edge function "search" : copie simplifiée de supabase/functions/search
+// 1) Edge function "search" : le VRAI code de supabase/functions/search
+//    (correction de fautes, catégories, intentions, lieu vérifié avec Nominatim),
+//    empaqueté dans search-function.mjs.
 // ---------------------------------------------------------------------------
-const CATEGORY_ALIASES = {
-  restaurant: ["restaurant", "resto", "restauration", "snack", "fast food", "cafe", "manger"],
-  hotel: ["hotel", "hebergement", "dormir"],
-  bank: ["banque", "distributeur", "retirer"],
-  pharmacy: ["pharmacie", "medicament"],
-  hospital: ["hopital", "clinique", "soigner"],
-  gas_station: ["station service", "station-service", "essence", "plein"],
-};
-
-function normalize(text) {
-  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-}
-
-function parseQuery(query) {
-  const text = normalize(query);
-  const category =
-    Object.entries(CATEGORY_ALIASES).find(([, aliases]) => aliases.some((a) => text.includes(a)))?.[0] ?? null;
-  const location = text.match(/(?:\ba|\bdans|\bsur|\bpres de|\bproche de)\s+(.+)$/)?.[1]?.trim() ?? null;
-  return {
-    query,
-    type: category ? "category" : location ? "place" : "unknown",
-    category,
-    intent: null,
-    location,
-    location_verified: location ? true : null,
-    place: location,
-    relation: null,
-  };
-}
+import { analyze } from "./search-function.mjs";
+import { assistantReply } from "./assistant-flows.mjs";
 
 // ---------------------------------------------------------------------------
 // 2) POST /search : mêmes catégories acceptées que backend/search/main.py
@@ -232,9 +208,20 @@ const server = http.createServer(async (req, res) => {
   // Edge function Supabase "search"
   if (req.method === "POST" && url.pathname === "/functions/v1/search") {
     const body = await readJson(req);
+    if (!body || typeof body.query !== "string" || body.query.trim() === "") {
+      return send(res, 400, { error: "Le champ query est obligatoire." });
+    }
+    return send(res, 200, await analyze(body.query));
+  }
+
+  // IA : questions et suggestions de la boite de decision
+  if (req.method === "POST" && url.pathname === "/assistant") {
+    const body = await readJson(req);
+    if (!body || typeof body.query !== "string" || body.query.trim() === "") {
+      return send(res, 400, { detail: "Le champ query est obligatoire." });
+    }
     await sleep(DELAY_MS);
-    if (!body || typeof body.query !== "string") return send(res, 400, { error: "query manquante" });
-    return send(res, 200, parseQuery(body.query));
+    return send(res, 200, assistantReply(body.query));
   }
 
   // Backend : recherche de lieux

@@ -3,6 +3,7 @@
 //
 // Routes simulées (mêmes chemins et mêmes formats que le vrai projet) :
 //   POST /functions/v1/search   -> edge function Supabase "search" (analyse de la requête)
+//   POST /assistant             -> IA qui pose des questions (boite de decision) : scenarios dans assistant-flows.mjs
 //   POST /search                -> backend Python (liste des lieux + connectivité)
 //   GET  /api/pylones/bbox      -> backend Python + Neo4j (pylônes dans une zone)
 //   GET  /api/pylones           -> backend Python + Neo4j (tous les pylônes)
@@ -29,6 +30,7 @@ const STRICT = process.env.MOCK_STRICT !== "0";
 //    empaqueté dans search-function.mjs.
 // ---------------------------------------------------------------------------
 import { analyze } from "./search-function.mjs";
+import { assistantReply } from "./assistant-flows.mjs";
 
 // ---------------------------------------------------------------------------
 // 2) POST /search : mêmes catégories acceptées que backend/search/main.py
@@ -210,6 +212,16 @@ const server = http.createServer(async (req, res) => {
       return send(res, 400, { error: "Le champ query est obligatoire." });
     }
     return send(res, 200, await analyze(body.query));
+  }
+
+  // IA : questions et suggestions de la boite de decision
+  if (req.method === "POST" && url.pathname === "/assistant") {
+    const body = await readJson(req);
+    if (!body || typeof body.query !== "string" || body.query.trim() === "") {
+      return send(res, 400, { detail: "Le champ query est obligatoire." });
+    }
+    await sleep(DELAY_MS);
+    return send(res, 200, assistantReply(body.query));
   }
 
   // Backend : recherche de lieux

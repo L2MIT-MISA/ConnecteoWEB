@@ -20,6 +20,7 @@ npm run dev                   # terminal 2
 | Appel du front | Simulé par |
 |---|---|
 | `supabase.functions.invoke("search")` | `POST /functions/v1/search` : **le vrai code** de `supabase/functions/search` (fautes de frappe, « où manger », lieu vérifié avec Nominatim), empaqueté dans `search-function.mjs` |
+| `POST /assistant` (front : `src/services/assistant.ts`) | Scénarios de la boîte de décision (santé, urgence, ressources, lieu, détresse), écrits dans `assistant-flows.mjs` |
 | `POST /search` | 15 hôtels réels de `final_results.json` ; autres catégories : mêmes lieux renommés « (démo) » |
 | `GET /api/pylones/bbox` et `/api/pylones` | ~900 pylônes générés (dont ceux cités dans la connectivité des hôtels) |
 
