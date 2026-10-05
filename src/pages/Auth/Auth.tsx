@@ -1,364 +1,596 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect } from "react";
+import { type FormEvent  } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  getCurrentUserProfile,
-  isUsernameAvailable,
-  signIn,
-  signUp,
-} from '../../services/auth';
+    getCurrentUserProfile,
+    signIn,
+    signUp,
+    emailAlredyExist,
+    resetPassword,
+    signInWithGoogle
+} from "../../services/auth";
+import Navbar  from '../../components/Navbar/Navbar'
+import './Auth.css'
+import {UserRound,
+    Mail,
+    Phone,
+    LockKeyhole,
+    Eye,
+    EyeOff
+} from "lucide-react";
+import { supabase } from "../../services/supabase";
 
-import './Auth.css';
 
 function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
+    console.log("AUTH PAGE CHARGÉE");
+    const navigate = useNavigate();
 
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+    const [isLogin , setIsLogin] = useState(true);
+    const [first_name , setFirst_name] = useState('');
+    const [last_name , setLast_name] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone , setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(true);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    setMessage('');
 
-    const cleanUsername = username.trim();
+    useEffect(() => {
 
-    // Vérification du nom d'utilisateur
-    if (!cleanUsername) {
-      setMessage("Veuillez saisir votre nom d'utilisateur.");
-      return;
+        async function checkGoogleSession()
+        {
+            const { data } =
+                await supabase.auth.getSession();
+
+            if (!data.session)
+            {
+                return;
+            }
+
+            const {
+                profile,
+                error
+            } = await getCurrentUserProfile();
+
+            if (error || !profile)
+            {
+                return;
+            }
+
+            if (profile.role === "ADMIN")
+            {
+                navigate("/admin");
+            }
+            else
+            {
+                navigate("/user");
+            }
+        }
+
+        checkGoogleSession();
+
+    }, [navigate]);
+
+    async function handleGoogleLogin()
+    {
+        setMessage("");
+        setLoading(true);
+
+        const { error } = await signInWithGoogle();
+
+        if (error)
+        {
+            setLoading(false);
+
+            setMessage(
+                "Impossible de se connecter avec Google."
+            );
+        }
     }
 
-    // Vérification du mot de passe
-    if (!password) {
-      setMessage('Veuillez saisir votre mot de passe.');
-      return;
-    }
+    async function handleForgotPassword()
+    {
+        setMessage("");
 
-    // Vérification de la confirmation
-    if (!isLogin && password !== confirmation) {
-      setMessage('Les mots de passe ne correspondent pas.');
-      return;
-    }
+        const cleanEmail = email.trim().toLowerCase();
 
-    setLoading(true);
+        if (!cleanEmail)
+        {
+            setMessage(
+                "Veuillez saisir votre adresse e-mail."
+            );
 
-    // ==========================
-    // CONNEXION
-    // ==========================
+            return;
+        }
 
-    if (isLogin) {
-      const { error } = await signIn(
-        cleanUsername,
-        password
-      );
+        setLoading(true);
 
-      if (error) {
+        const { error } = await resetPassword(cleanEmail);
+
         setLoading(false);
 
-        setMessage(
-          "Nom d'utilisateur ou mot de passe incorrect."
-        );
+        if (error)
+        {
+            setMessage(
+                "Impossible d'envoyer l'e-mail de récupération."
+            );
 
-        return;
-      }
-
-      // Récupérer le profil et le rôle
-      const {profile,error: profileError,} = await getCurrentUserProfile();
-
-      setLoading(false);
-
-    if (profileError || !profile) {
-        console.error('ERREUR PROFIL :', profileError);
+            return;
+        }
 
         setMessage(
-          'Impossible de récupérer les informations du compte.'
+            "Un lien de récupération a été envoyé à votre adresse e-mail."
         );
-
-        return;
-      }
-      
-      // Redirection selon le rôle
-      if (profile.role === 'ADMIN') {
-        window.location.hash='pages/Admin';
-      } else {
-        window.location.hash='pages/Home';
-      }
-
-      return;
     }
 
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
 
-    // ==========================
-    // INSCRIPTION
-    // ==========================
+        setMessage('');
+        
+        const cleanFirst_name = first_name.trim();
+        const cleanLast_name = last_name.trim();
+        const cleanEmail = email.trim();
+        const cleanPhone = phone.trim();
 
-    try {
-    const available =
-    await isUsernameAvailable(cleanUsername);
+        if (!isLogin)
+        {
+            if (!cleanLast_name)
+            {
+                setMessage("Veuillez saisir votre nom.");
+                return;
+            }
 
-    if (!available) {
+            if (!cleanFirst_name)
+            {
+                setMessage("Veuillez saisir votre prénom.");
+                return;
+            }
+
+            if (!cleanPhone)
+            {
+                setMessage("Veuillez saisir votre numéro téléphone.");
+                return;
+            }
+        }
+
+        if (!cleanEmail)
+        {
+            setMessage("Veuillez saisir votre Email.");
+            return;
+        }
+
+        if (!password)
+        {
+            setMessage("Veuillez saisir votre mot de passe.");
+            return;
+        }
+
+        setLoading(true);
+
+        // ==========================
+        // CONNEXION
+        // ==========================
+        if ( isLogin )
+        {
+            const { error } = await signIn(
+                cleanEmail,
+                password,
+                rememberMe
+            );
+
+            if(error ) {
+                setLoading(false);
+
+                setMessage("Nom d'utilisateur ou mot de passe incorrect.");
+                return;
+            }
+
+            // Récupérer le profil et le rôle
+            const {profile,error:  profileError,} = await getCurrentUserProfile();
+
+            setLoading(false);
+
+            if(profileError || !profile) {
+                setMessage('Impossible de récupérer les informations du compte.');
+                return;
+            }
+
+            // Redirection selon le rôle
+            if (profile.role === 'ADMIN') {
+                navigate('/admin');
+            } else {
+                navigate('/user');
+            }
+
+            return;
+        }
+
+        // ==========================
+        // INSCRIPTION
+        // ==========================
+        try {
+            const email_exist = await emailAlredyExist(cleanEmail);
+
+            if(!email_exist)
+            {
+                setLoading(false);
+
+                setMessage("Ce adresse email est déjà utilisé.");
+
+                return;
+            }
+        }
+        catch(error)
+        {
+            setLoading(false);
+            setMessage("Impossible de vérifier l'adresse email.");
+            return;
+        }
+
+        //first_name:string , last_name : string , mail : string , phone_number:string , password: string 
+        const { error } = await signUp(cleanFirst_name,cleanLast_name,cleanEmail,cleanPhone,password);
+
         setLoading(false);
 
-        setMessage(
-        "Ce nom d'utilisateur est déjà utilisé."
-        );
+        if(error)
+        {
+            setMessage(`Erreur : ${error.message}`);
+            return;
+        }
 
-        return;
+        setMessage('Compte créé avec succès. Vous pouvez maintenant vous connecter.');
+
+        // Redirection vers la page de l'utilisateur simple
+        navigate('/user');
     }
-    } catch (error) {
-    setLoading(false);
+    return (
+    <div className="pages">
+        <Navbar/>
+        <div className="auth-page">
 
-    setMessage(
-        "Impossible de vérifier le nom d'utilisateur."
-    );
+            {/* =========================
+                PARTIE GAUCHE
+            ========================= */}
+            <div className="auth-left">
 
-    return;
-    }
+                <img src={isLogin ? "/images/login_2.jpeg" : "/images/login_1.jpeg"} className="auth-background" alt=""/>
 
-    const { error } = await signUp(
-      cleanUsername,
-      password
-    );
+                <div className="auth-overlay"></div>
 
-    setLoading(false);
+                <div className="auth-left-content">
 
-    
-    if (error) {
-        console.error('ERREUR SUPABASE :', error);
+                    <div className="auth-logo">
+                        
 
-        setMessage(
-            `Erreur : ${error.message}`
-        );
+                    </div>
 
-        return;
-    }
-    setMessage(
-      'Compte créé avec succès. Vous pouvez maintenant vous connecter.'
-    );
+                    <h1>
+                        {isLogin ? (
+                            <>
+                                "Trouver le bon service ne 
+                                <br />
+                                devrait jamais être compliqué."
+                            </>
+                        ):(
+                            <>
+                                Votre espace
+                                <br />
+                                personnel, simplement.
+                            </>
+                        )}
+                    </h1>
+                    {!isLogin && (
+                        <>
+                            <p className="auth-description">
+                                Retrouvez vos services, recevez vos recherches
+                                <br />
+                                et recevez des informations près de chez vous.
+                            </p>
+                        </>
+                    )}
+                    {isLogin ? (
+                        <>
+                            <div className="auth-footer-text">
+                                <p>L'équipe Connectéo-Antananarivo</p>
+                            </div>
+                        </>
+                    ):(
+                        <>
+                            <div className="auth-advantages">
+                                <p>✓ Recherches et favoris sauvegardés </p>
+                                <p>✓ Alertes locales personnalisées </p>
+                                <p>✓ Données protégées et confidentielles </p>
+                            </div>
+                        </>
+                    )}
 
+                    
 
+                </div>
 
-     // Redirection vers la page de l'utilisateur simple
-      window.location.hash='Page/User';
-
-  }
-
-  return (
-    <div className="auth-page">
-
-      <div className="auth-card">
-
-        {/* Logo */}
-        <div className="auth-logo">
-          <div className="logo-circle">
-            <div className="logo-circle-middle">
-              <div className="logo-circle-inner"></div>
             </div>
-          </div>
 
-          <h1>Connectéo</h1>
+
+            {/* =========================
+                PARTIE DROITE
+            ========================= */}
+            <div className="auth-right">
+
+                <div className="auth-card">
+
+                    {/* TITRE */}
+                    <div className="auth-title">
+
+                        <h2>
+                            {isLogin
+                                ? "Bon retour parmi nous"
+                                : "Créer votre compte"}
+                        </h2>
+
+                        <p>
+                            {isLogin
+                                ? "Connectez-vous à votre espace Connectéo."
+                                : "Quelques informations suffisent pour commencer."}
+                        </p>
+
+                    </div>
+
+
+                    {/* FORMULAIRE */}
+                    <form
+                        className="auth-form"
+                        onSubmit={handleSubmit}
+                    >
+
+                        {/* PRÉNOM + NOM */}
+                        {!isLogin && (
+                            <div className="name-fields">
+
+                                <div className="input-group">
+
+                                    <label>Prénom </label>
+
+                                    <div className="input-with-icon">
+
+                                        <UserRound size={17} />
+
+                                        <input
+                                            type="text"
+                                            placeholder="Votre prénom"
+                                            value={first_name}
+                                            onChange={(event) => setFirst_name(event.target.value)}
+                                        />
+
+                                    </div>      
+                                                          
+
+                                </div>
+
+
+                                <div className="input-group">
+
+                                    <label>Nom </label>
+
+                                    <div className="input-with-icon">
+
+                                        <UserRound size={17} />
+
+                                        <input
+                                            type="text"
+                                            placeholder="Votre nom"
+                                            value={last_name}
+                                            onChange={(event) => setLast_name(event.target.value)}
+                                        />
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        )}
+
+
+                        {/* EMAIL */}
+                        <div className="input-group">
+
+                            <label>Adresse e-mail </label>
+
+                            <div className="input-with-icon">
+
+                                <Mail size={17} />
+
+                                <input
+                                    type="email"
+                                    placeholder="vous@exemple.mg"
+                                    value={email}
+                                    onChange={(event) => setEmail(event.target.value)}
+                                />
+
+                            </div>
+
+                        </div>
+
+
+                        {/* TÉLÉPHONE */}
+                        {!isLogin && (
+                            <div className="input-group">
+
+                                <label>Numéro de téléphone </label>
+
+                                <div className="input-with-icon">
+
+                                    <Phone size={17} />
+
+                                    <input
+                                        type="tel"
+                                        placeholder="+261 34 00 000 00"
+                                        value={phone}
+                                        onChange={(event) => setPhone(event.target.value)}
+                                    />
+
+                                </div>
+
+                            </div>
+                        )}
+
+
+                        {/* MOT DE PASSE */}
+                        <div className="input-group">
+
+                            <label>Mot de passe  </label>
+
+                            <div className="password-wrapper">
+
+                                <LockKeyhole size={17} className="password-icon" />
+
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Votre mot de passe"
+                                    value={password}
+                                    onChange={(event) => setPassword(event.target.value)}
+                                />
+
+                                <button
+                                    type="button"
+                                    className="password-toggle"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={
+                                        showPassword
+                                            ? "Masquer le mot de passe"
+                                            : "Afficher le mot de passe"
+                                    }
+                                >
+                                    {showPassword ? (
+                                        <EyeOff size={18} />
+                                    ) : (
+                                        <Eye size={18} />
+                                    )}
+                                </button>
+
+                            </div>
+
+                            
+                        </div>
+
+
+                        {/* OPTIONS CONNEXION */}
+                        {isLogin && (
+                            <div className="auth-options">
+
+                                <label className="remember">
+                                    <input
+                                        type="checkbox"
+                                        checked={rememberMe}
+                                        onChange={(event) => setRememberMe(event.target.checked)}
+                                    />
+                                    <span>Se souvenir de moi </span>
+                                </label>
+
+
+                                <button
+                                    type="button"
+                                    className="forgot-password-button"
+                                    onClick={handleForgotPassword}
+                                    disabled={loading}
+                                >
+                                    Mot de passe oublié ?
+                                </button>
+
+                            </div>
+                        )}
+
+
+                        {/* MESSAGE */}
+                        {message && (
+                            <div className="auth-message">
+                                {message}
+                            </div>
+                        )}
+
+
+                        {/* BOUTON */}
+                        <button
+                            type="submit"
+                            className="auth-submit"
+                            disabled={loading}
+                        >
+                            {loading ? "Chargement..." : isLogin ? "→  Se connecter" : "→  Créer mon compte"}
+                        </button>
+
+
+                        {/* GOOGLE */}
+                        {isLogin && (
+                            <>
+                                <div className="auth-separator">
+
+                                    <span></span>
+
+                                    <p>
+                                        OU
+                                    </p>
+
+                                    <span></span>
+
+                                </div>
+
+
+                                <button
+                                    type="button"
+                                    className="google-button"
+                                    onClick={handleGoogleLogin}
+                                    disabled={loading}
+                                >
+                                    
+
+                                    Continuer avec Google
+                                </button>
+                            </>
+                        )}
+
+
+                        {/* CHANGEMENT LOGIN / INSCRIPTION */}
+                        <p className="auth-switch">
+
+                            {isLogin
+                                ? "Pas encore de compte ?"
+                                : "Vous avez déjà un compte ?"}
+
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsLogin(!isLogin);
+                                    setMessage("");
+                                }}
+                            >
+                                {isLogin
+                                    ? "Créer un compte"
+                                    : "Se connecter"}
+                            </button>
+
+                        </p>
+
+                    </form>
+
+                </div>
+
+            </div>
+
         </div>
-
-        {/* Titre */}
-        <div className="auth-header">
-
-          <h2>
-            {isLogin ? 'Connexion': 'Créer un compte'}
-          </h2>
-
-          <p>
-            {isLogin ? 'Accédez à votre espace personnel' : 'Créez votre compte Connectéo'}
-          </p>
-
-        </div>
-
-        {/* Formulaire */}
-        <form className="auth-form" onSubmit={handleSubmit}>
-
-          {/* Username */}
-          <div className="input-group">
-
-            <div className="input-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M20 21C20 18.2386 17.3137 16 14 16H10C6.68629 16 4 18.2386 4 21"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-
-                <circle
-                  cx="12"
-                  cy="8"
-                  r="4"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                />
-              </svg>
-            </div>
-
-            <input
-              type="text"
-              value={username}
-              onChange={(event) =>
-                setUsername(event.target.value)
-              }
-              placeholder="Nom d'utilisateur"
-              autoComplete="username"
-            />
-
-          </div>
-
-          {/* Password */}
-          <div className="input-group">
-
-            <div className="input-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect
-                  x="5"
-                  y="10"
-                  width="14"
-                  height="10"
-                  rx="2"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                />
-
-                <path
-                  d="M8 10V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V10"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-
-            <input
-              type="password"
-              value={password}
-              onChange={(event) =>
-                setPassword(event.target.value)
-              }
-              placeholder="Mot de passe"
-              autoComplete={
-                isLogin
-                  ? 'current-password'
-                  : 'new-password'
-              }
-            />
-
-          </div>
-
-          {/* Confirmation */}
-          {!isLogin && (
-            <div className="input-group">
-
-              <div className="input-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <rect
-                    x="5"
-                    y="10"
-                    width="14"
-                    height="10"
-                    rx="2"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                  />
-
-                  <path
-                    d="M8 10V7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7V10"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
-
-              <input
-                type="password"
-                value={confirmation}
-                onChange={(event) =>
-                  setConfirmation(event.target.value)
-                }
-                placeholder="Confirmer le mot de passe"
-                autoComplete="new-password"
-              />
-
-            </div>
-          )}
-
-          {/* Message */}
-          {message && (
-            <div className="auth-message">
-              {message}
-            </div>
-          )}
-
-          {/* Bouton */}
-          <button
-            className="auth-button"
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? 'Chargement...': isLogin? 'Se connecter': "S'inscrire"}
-          </button>
-
-        </form>
-
-        {/* Changement connexion / inscription */}
-        <div className="auth-switch">
-
-          {isLogin ? (
-            <>
-              <span>Pas encore de compte ?</span>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(false);
-                  setMessage('');
-                }}
-              >
-                S'inscrire
-              </button>
-            </>
-          ) : (
-            <>
-              <span>Vous avez déjà un compte ?</span>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(true);
-                  setMessage('');
-                }}
-              >
-                Se connecter
-              </button>
-            </>
-          )}
-
-        </div>
-
-      </div>
-
     </div>
-  );
+);
+
+
 }
 
+
+
+
 export default Auth;
+
+
