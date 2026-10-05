@@ -78,7 +78,6 @@ export default function SearchPage() {
     setLoading(true);
     setError("");
     try {
-      // La détresse passe avant toute recherche de lieu
       if (!isDistress(query)) {
         const parsed = await parseSearchQuery(query);
         if (parsed.category) {
@@ -87,7 +86,6 @@ export default function SearchPage() {
           return;
         }
       }
-      // Phrase vague : l'assistant prend tout le panneau avec ses suggestions
       const response = await askAssistant(query);
       addMessage({ from: "ai", text: response.question, options: response.options });
       setView("assistant");
