@@ -72,7 +72,6 @@ const FLOWS: Record<string, AssistantResponse> = {
 
 const DISTRESS_WORDS = ["mourir", "suicide", "me tuer", "en finir", "plus envie de vivre"];
 
-// Utilisé aussi par la page carte pour traiter la détresse AVANT toute recherche de lieu
 export function isDistress(query: string): boolean {
   const t = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   return DISTRESS_WORDS.some((w) => t.includes(w));
