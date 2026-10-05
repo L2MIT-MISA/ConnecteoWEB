@@ -1,4 +1,17 @@
-/* ============ HEADER ============ */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+header,
+.mobile-menu,
+.menu-backdrop {
+  --hd-ink: #16161a;
+  --hd-ink-soft: #56565e;
+  --hd-soft: #f2f2ee;
+  --hd-accent: #2f5fff;
+  --hd-accent-soft: #eef2ff;
+  --hd-accent-ink: #1e3fbf;
+  --hd-line: #e8e8ec;
+  --hd-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
 
 header {
   position: fixed;
@@ -6,107 +19,92 @@ header {
   left: 0;
   right: 0;
   z-index: 1000;
-
+  height: 64px;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  padding: 25px 42px;
-
-  pointer-events: none;
-
-  /* Petit background discret */
-  background: rgba(10, 15, 11, 0.28);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 20px;
+  padding: 0 40px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--hd-line);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
 }
-
-header > * {
-  pointer-events: auto;
-}
-
-/* ============ LOGO CONNECTÉO ============ */
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
-
+  gap: 10px;
   text-decoration: none;
-  color: #fff;
+  color: var(--hd-ink);
+  cursor: pointer;
+  z-index: 2;
 }
 
 .brand-mark {
-  width: 34px;
-  height: 34px;
-
-  border: 1px solid rgba(238, 230, 208, 0.85);
-  border-radius: 50%;
-
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--hd-ink);
   position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: transform 0.5s var(--hd-ease);
+}
 
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+.brand:hover .brand-mark {
+  transform: rotate(90deg);
 }
 
 .brand-mark::before,
 .brand-mark::after {
   content: "";
-
   position: absolute;
-
-  border: 1px solid rgba(238, 230, 208, 0.85);
   border-radius: 50%;
+  background: var(--hd-accent);
 }
 
 .brand-mark::before {
-  inset: 7px;
+  inset: 8px;
 }
 
 .brand-mark::after {
   inset: 13px;
+  background: #ffffff;
 }
 
 .brand-name {
-  font-family: "Manrope", sans-serif;
-
-  font-size: 1.15rem;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 16.8px;
   font-weight: 700;
-
   letter-spacing: -0.03em;
-
-  text-shadow:
-    0 2px 14px rgba(0, 0, 0, 0.7),
-    0 0 30px rgba(0, 0, 0, 0.5);
+  color: var(--hd-ink);
 }
-
-/* ============ NAVIGATION ============ */
 
 nav {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
-  gap: 34px;
+  gap: 32px;
 }
 
 nav a {
   position: relative;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--hd-ink-soft);
   text-decoration: none;
-  font-size: 0.88rem;
+  font-size: 13.8px;
   font-weight: 500;
-  transition: color 0.25s ease;
-  text-shadow:
-    0 2px 14px rgba(0, 0, 0, 0.7),
-    0 0 30px rgba(0, 0, 0, 0.5);
+  transition: color 0.2s ease;
   cursor: pointer;
 }
 
 nav a:hover,
 nav a.active {
-  color: #fff;
+  color: var(--hd-ink);
 }
 
 nav a.active::after {
@@ -114,104 +112,74 @@ nav a.active::after {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -8px;
+  bottom: -22px;
   height: 2px;
-  background: #e7dfc9;
-  border-radius: 2px;
-  animation: activeBar 0.25s ease;
+  background: var(--hd-accent);
+  border-radius: 1px;
 }
 
-@keyframes activeBar {
-  from {
-    transform: scaleX(0);
-  }
-
-  to {
-    transform: scaleX(1);
-  }
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 2;
 }
-/* ============ BOUTON ============ */
 
 .header-action {
-  text-decoration: none;
-
-  color: #152019;
-  background: #e7dfc9;
-
-  padding: 11px 19px;
-
-  border-radius: 9px;
-
-  font-size: 0.84rem;
-  font-weight: 700;
-
-  transition:
-    transform 0.25s ease,
-    background 0.25s ease;
-
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-
-  cursor: pointer;
-
+  background: var(--hd-accent);
+  color: #ffffff;
   border: 0;
-
+  padding: 9px 18px;
+  border-radius: 9px;
   font-family: inherit;
+  font-size: 13.4px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(47, 95, 255, 0.25);
+  transition: transform 0.2s var(--hd-ease), background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .header-action:hover {
-  transform: translateY(-2px);
-  background: #fff8e7;
+  transform: translateY(-1px);
+  background: var(--hd-accent-ink);
+  box-shadow: 0 6px 20px rgba(47, 95, 255, 0.35);
 }
-
-/* ============ MENU DU COMPTE ============ */
 
 .account-menu {
   position: relative;
 }
 
 .avatar-button {
-  width: 44px;
-  height: 44px;
-
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: 0;
-
-  color: #152019;
-  background: #e7dfc9;
-
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: var(--hd-accent-ink);
+  background: var(--hd-accent-soft);
+  border: 1px solid var(--hd-line);
   border-radius: 50%;
-
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-
   cursor: pointer;
-
-  transition:
-    transform 0.25s ease,
-    background 0.25s ease,
-    box-shadow 0.25s ease;
+  transition: transform 0.2s var(--hd-ease), background 0.2s ease;
 }
 
 .avatar-button:hover,
 .avatar-button[aria-expanded="true"] {
-  transform: translateY(-2px);
-  background: #fff8e7;
-  box-shadow: 0 7px 24px rgba(0, 0, 0, 0.38);
+  transform: translateY(-1px);
+  background: #dde5ff;
 }
 
 .avatar-button:focus-visible,
-.sign-out-button:focus-visible {
-  outline: 2px solid #fff8e7;
+.sign-out-button:focus-visible,
+.menu-btn:focus-visible {
+  outline: 2px solid var(--hd-accent);
   outline-offset: 3px;
 }
 
 .avatar-button svg {
-  width: 25px;
-  height: 25px;
-
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -223,69 +191,35 @@ nav a.active::after {
   position: absolute;
   top: calc(100% + 12px);
   right: 0;
-
   min-width: 185px;
   padding: 7px;
-
-  background: rgba(10, 15, 11, 0.96);
-
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #ffffff;
+  border: 1px solid var(--hd-line);
   border-radius: 12px;
-
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-
+  box-shadow: 0 12px 40px rgba(22, 22, 26, 0.14);
   animation: accountMenuIn 0.18s ease;
 }
 
-.account-dropdown::before {
-  content: "";
-
-  position: absolute;
-  top: -5px;
-  right: 17px;
-
-  width: 9px;
-  height: 9px;
-
-  background: rgba(10, 15, 11, 0.96);
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
-
-  transform: rotate(45deg);
-}
-
 .sign-out-button {
-  position: relative;
-
   width: 100%;
-
   display: flex;
   align-items: center;
   gap: 10px;
-
   padding: 11px 12px;
-
-  color: #f5f1e8;
+  color: var(--hd-ink);
   background: transparent;
-
   border: 0;
   border-radius: 8px;
-
   font-family: inherit;
-  font-size: 0.84rem;
+  font-size: 13.4px;
   font-weight: 600;
   text-align: left;
-
   cursor: pointer;
-
   transition: background 0.2s ease;
 }
 
 .sign-out-button:hover {
-  background: rgba(231, 223, 201, 0.12);
+  background: var(--hd-soft);
 }
 
 .sign-out-button:disabled {
@@ -296,9 +230,8 @@ nav a.active::after {
 .sign-out-button svg {
   width: 18px;
   height: 18px;
-
   fill: none;
-  stroke: #d6c98f;
+  stroke: var(--hd-accent);
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -309,38 +242,146 @@ nav a.active::after {
     opacity: 0;
     transform: translateY(-5px) scale(0.98);
   }
-
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-/* ============ MOBILE ============ */
+.menu-btn {
+  display: none;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--hd-ink);
+  border: 1px solid var(--hd-line);
+  border-radius: 11px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
 
-@media (max-width: 700px) {
+.menu-btn:hover {
+  background: var(--hd-soft);
+}
+
+.menu-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.menu-btn .icon-close {
+  display: none;
+}
+
+.menu-btn.open .icon-burger {
+  display: none;
+}
+
+.menu-btn.open .icon-close {
+  display: block;
+}
+
+.mobile-menu {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1050;
+  width: min(340px, 88vw);
+  height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 90px 28px 28px;
+  overflow-y: auto;
+  background: #ffffff;
+  box-shadow: -20px 0 60px rgba(22, 22, 26, 0.15);
+  text-align: left;
+  transform: translateX(100%);
+  transition: transform 0.35s var(--hd-ease);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+.mobile-menu.open {
+  transform: translateX(0);
+}
+
+.mobile-menu a {
+  display: block;
+  padding: 16px 18px;
+  border-radius: 12px;
+  color: var(--hd-ink);
+  text-decoration: none;
+  font-size: 16.8px;
+  font-weight: 500;
+  transition: background 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.mobile-menu a:hover,
+.mobile-menu a.active {
+  background: var(--hd-accent-soft);
+  color: var(--hd-accent-ink);
+  font-weight: 600;
+}
+
+.mobile-menu .menu-cta {
+  margin-top: 16px;
+  padding: 16px 18px;
+  background: var(--hd-accent);
+  color: #ffffff;
+  text-align: center;
+  border: 0;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(47, 95, 255, 0.25);
+  transition: background 0.2s ease, transform 0.2s var(--hd-ease);
+}
+
+.mobile-menu .menu-cta:hover {
+  background: var(--hd-accent-ink);
+  transform: translateY(-1px);
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: rgba(22, 22, 26, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.menu-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 800px) {
   header {
-    padding: 20px;
+    padding: 0 20px;
   }
 
-  nav {
-    gap: 15px;
-  }
-
-  nav a {
-    font-size: 0.75rem;
-  }
-
+  nav,
   .header-action {
     display: none;
   }
 
-  .avatar-button {
-    width: 40px;
-    height: 40px;
-  }
-
-  .account-dropdown {
-    top: calc(100% + 10px);
+  .menu-btn {
+    display: flex;
   }
 }

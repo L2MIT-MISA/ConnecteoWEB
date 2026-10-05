@@ -13,12 +13,12 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    border: 0;
-    background: #4a5a50;
-    color: #ffffff;
+    border: 1px solid #e8e8ec;
+    background: #ffffff;
+    color: #16161a;
     font-size: 26px;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 14px rgba(22, 22, 26, 0.2);
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
@@ -27,20 +27,20 @@
 }
 
 .itineraire-toggle:hover {
-    background: #5c6f63;
+    background: #f2f2ee;
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 6px 20px rgba(22, 22, 26, 0.28);
 }
 
 .itineraire-contenu {
     width: 340px;
-    background: #2a332d;
-    border: 1px solid #3d4a42;
+    background: #ffffff;
+    border: 1px solid #e8e8ec;
     border-radius: 12px;
-    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px rgba(22, 22, 26, 0.25);
     padding: 18px;
     animation: slideUp 0.25s ease;
-    color: #ffffff;
+    color: #16161a;
 }
 
 @keyframes slideUp {
@@ -60,20 +60,20 @@
     align-items: center;
     margin-bottom: 14px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #3d4a42;
+    border-bottom: 1px solid #e8e8ec;
 }
 
 .itineraire-header h3 {
     margin: 0;
     font-size: 16px;
-    color: #ffffff;
+    color: #16161a;
 }
 
 .itineraire-fermer {
     background: transparent;
     border: 0;
     font-size: 18px;
-    color: #8fa398;
+    color: #8e8e96;
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 6px;
@@ -81,8 +81,8 @@
 }
 
 .itineraire-fermer:hover {
-    background: #3a453e;
-    color: #ffffff;
+    background: #f2f2ee;
+    color: #16161a;
 }
 
 .itineraire-champ {
@@ -90,16 +90,16 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    background: #1f2723;
-    border: 1px solid #3d4a42;
+    background: #f2f2ee;
+    border: 1px solid #e8e8ec;
     border-radius: 8px;
     margin-bottom: 10px;
     transition: border-color 0.15s;
 }
 
 .itineraire-champ:focus-within {
-    border-color: #6fbf8b;
-    background: #232b27;
+    border-color: #2f5fff;
+    background: #ffffff;
 }
 
 .itineraire-champ .icone {
@@ -113,12 +113,12 @@
     outline: 0;
     background: transparent;
     font-size: 14px;
-    color: #ffffff;
+    color: #16161a;
     font-family: inherit;
 }
 
 .itineraire-champ input::placeholder {
-    color: #8fa398;
+    color: #8e8e96;
 }
 
 .itineraire-actions {
@@ -138,15 +138,17 @@
     cursor: pointer;
     font-family: inherit;
     transition: all 0.15s;
+    background: #f2f2ee;
+    color: #16161a;
 }
 
 .btn-calculer {
-    background: #4a5a50;
+    background: #2f5fff;
     color: #ffffff;
 }
 
 .btn-calculer:hover:not(:disabled) {
-    background: #5c6f63;
+    background: #1e3fbf;
 }
 
 .btn-effacer {
@@ -155,45 +157,45 @@
 }
 
 .btn-effacer:hover {
-    background: #4a5a50;
-    color: #ffffff;
+    background: #e8e8ec;
+    color: #16161a;
 }
 
 .itineraire-infos {
     margin-top: 14px;
     padding: 12px;
-    background: #1f2723;
-    border: 1px solid #3d4a42;
+    background: #f2f2ee;
+    border: 1px solid #e8e8ec;
     border-radius: 8px;
     font-size: 13px;
 }
 
 .info-ligne {
     margin: 4px 0;
-    color: #d5e0d8;
+    color: #56565e;
 }
 
 .itineraire-erreur {
     margin-top: 14px;
     padding: 12px;
-    background: #3a2222;
-    border: 1px solid #5c3030;
+    background: rgba(229, 72, 77, 0.08);
+    border: 1px solid rgba(229, 72, 77, 0.3);
     border-radius: 8px;
     font-size: 13px;
-    color: #ff9999;
+    color: #e5484d;
 }
 
 .itineraire-credit {
     margin-top: 12px;
     padding-top: 10px;
-    border-top: 1px solid #3d4a42;
+    border-top: 1px solid #e8e8ec;
     font-size: 11px;
-    color: #8fa398;
+    color: #8e8e96;
     text-align: center;
 }
 
 .btn-calculer:disabled {
-    background: #3a453e;
-    color: #7a8a80;
+    background: #e8e8ec;
+    color: #8e8e96;
     cursor: not-allowed;
 }

@@ -7,8 +7,6 @@ import './style/Carte.css';
 import './style/Itineraire.css';
 import './style/Bulle.css';
 import './style/Zoom.css';
-import './style/Bare_recherche.css';
-import './style/Legende.css';
 
 const CENTRE = { lat: -18.8792, lng: 47.5079 };
 const API_URL = `${import.meta.env.VITE_SEARCH_API_URL || 'http://127.0.0.1:8000'}/api/pylones`;
@@ -38,34 +36,6 @@ function getIconeOperateur(codeOperateur) {
     if (code.includes('AIRTEL')) return '/airtel.svg';
     if (code.includes('GULFSAT')) return '/gulfsat.svg';
     return '/pylone.png';
-}
-
-// ============================================================
-// LÉGENDE
-// ============================================================
-function Legende() {
-    const operateurs = [
-        { nom: 'Telma', icone: '/yas.svg' },
-        { nom: 'Orange', icone: '/orange.svg' },
-        { nom: 'Airtel', icone: '/airtel.svg' },
-        { nom: 'Gulfsat', icone: '/gulfsat.svg' }
-    ];
-
-    return (
-        <div className="legende">
-            <h4>Opérateurs</h4>
-            {operateurs.map(op => (
-                <div key={op.nom} className="legende-item">
-                    <img src={op.icone} alt={op.nom} style={{ width: '25px', height: '25px' }} />
-                    <span>{op.nom}</span>
-                </div>
-            ))}
-            <div className="legende-item">
-                <img src="/lora.png" alt="LoRa" style={{ width: '25px', height: '25px' }} />
-                <span>Module LoRa</span>
-            </div>
-        </div>
-    );
 }
 
 // ============================================================
@@ -286,12 +256,12 @@ function PanneauItineraire({ onCalculer, onEffacer, infos, chargement }) {
     return (
         <div className="itineraire-panel">
             {!ouvert && (
-                <button className="itineraire-toggle" onClick={() => setOuvert(true)} title="Calculer un itinéraire">🧭</button>
+                <button className="itineraire-toggle" onClick={() => setOuvert(true)} title="Calculer un itinéraire" aria-label="Calculer un itinéraire"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polygon points="16 8 14 14 8 16 10 10 16 8" /></svg></button>
             )}
             {ouvert && (
                 <div className="itineraire-contenu">
                     <div className="itineraire-header">
-                        <h3>🧭 Itinéraire</h3>
+                        <h3>Itinéraire</h3>
                         <button className="itineraire-fermer" onClick={() => setOuvert(false)}>✕</button>
                     </div>
                     <form onSubmit={handleCalculer}>
@@ -349,34 +319,6 @@ function zoomPourRayon(rayonKm) {
 }
 
 // ============================================================
-// BARRE DE RECHERCHE DE LIEU
-// ============================================================
-function BarreRecherche({ onRecherche, chargement }) {
-    const [texte, setTexte] = useState('');
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!texte.trim()) return;
-        onRecherche(texte.trim());
-    };
-
-    return (
-        <form className="recherche-bar" onSubmit={handleSubmit}>
-            <span className="recherche-icone">🔍</span>
-            <input
-                type="text"
-                placeholder="Rechercher un lieu (ex: Mahamasina, Ankatso...)"
-                value={texte}
-                onChange={(e) => setTexte(e.target.value)}
-            />
-            <button type="submit" disabled={chargement}>
-                {chargement ? '...' : 'Chercher'}
-            </button>
-        </form>
-    );
-}
-
-// ============================================================
 // CONFIG
 // ============================================================
 const RAYON_KM = 10;
@@ -386,12 +328,10 @@ const RAYON_KM = 10;
 // ============================================================
 function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
     const [pylones, setPylones] = useState([]);
-    const [chargementPylones, setChargementPylones] = useState(false);
     const [pyloneSelectionne, setPyloneSelectionne] = useState(null);
     const [trace, setTrace] = useState(null);
     const [infosItineraire, setInfosItineraire] = useState(null);
     const [chargementItineraire, setChargementItineraire] = useState(false);
-    const [lieuActuel, setLieuActuel] = useState(null);
     const [mapInstance, setMapInstance] = useState(null);
 
     // LoRa (temps réel via WebSocket)
@@ -411,7 +351,6 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
     // Charge les pylônes dans une bounding box
     // ----------------------------------------------------------
     const chargerPylonesDansBbox = async (bbox) => {
-        setChargementPylones(true);
         try {
             const url = `${API_URL}/bbox?minLat=${bbox.minLat}&minLng=${bbox.minLng}&maxLat=${bbox.maxLat}&maxLng=${bbox.maxLng}`;
             console.log('Chargement pylônes depuis', url);
@@ -429,8 +368,6 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
         } catch (err) {
             console.error('Erreur chargement pylônes :', err);
             setPylones([]);
-        } finally {
-            setChargementPylones(false);
         }
     };
 
@@ -441,33 +378,6 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
         const bbox = bboxAutourDe(CENTRE.lat, CENTRE.lng, RAYON_KM);
         chargerPylonesDansBbox(bbox);
     }, []);
-
-    // ----------------------------------------------------------
-    // Recherche d'un lieu
-    // ----------------------------------------------------------
-    const handleRecherche = async (adresse) => {
-        try {
-            setChargementPylones(true);
-            const lieu = await geocoder(adresse);
-            console.log('Lieu trouvé :', lieu);
-
-            setLieuActuel(lieu);
-
-            if (mapInstance) {
-                mapInstance.panTo({ lat: lieu.lat, lng: lieu.lng });
-                mapInstance.setZoom(zoomPourRayon(RAYON_KM));
-            }
-
-            const bbox = bboxAutourDe(lieu.lat, lieu.lng, RAYON_KM);
-            await chargerPylonesDansBbox(bbox);
-
-            setPyloneSelectionne(null);
-        } catch (err) {
-            console.error('Erreur recherche :', err);
-            alert(err.message);
-            setChargementPylones(false);
-        }
-    };
 
     // ----------------------------------------------------------
     // Itinéraire
@@ -603,18 +513,6 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
                     <ZoomControls />
                 </Map>
             </APIProvider>
-
-            <BarreRecherche onRecherche={handleRecherche} chargement={chargementPylones} />
-            <Legende />
-
-            <div className="compteur">
-                📡 <span>{pylones.length}</span> pylônes
-                {chargementPylones && ' · Chargement…'}
-                {lieuActuel && ` · autour de ${lieuActuel.nom.split(',')[0]}`}
-                {dispositifsLora.length > 0 && (
-                    <> · <span style={{ color: '#8fd9a8' }}>{dispositifsLora.length}</span> LoRa</>
-                )}
-            </div>
 
             <PanneauItineraire
                 onCalculer={handleCalculer}

@@ -7,6 +7,12 @@ function goToAuth() {
   window.location.hash = "#pages/Auth";
 }
 
+const NAV_LINKS = [
+  { href: "#pages/Home", page: "home", label: "Accueil", matches: ["pages/Home", "home"] },
+  { href: "#pages/Download", page: "download", label: "Télécharger", matches: ["pages/Download", "download"] },
+  { href: "#pages/About", page: "about", label: "À propos", matches: ["pages/About", "about"] },
+];
+
 export default function Header() {
   const [currentPage, setCurrentPage] = useState(
     window.location.hash.replace("#", "") || "home"
@@ -14,12 +20,14 @@ export default function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleHashChange = () => {
       const page = window.location.hash.replace("#", "") || "home";
       setCurrentPage(page);
+      setIsMobileOpen(false);
     };
 
     window.addEventListener("hashchange", handleHashChange);
@@ -93,82 +101,112 @@ export default function Header() {
   }
 
   return (
-    <header id="mainHeader">
-      <a
-        className="brand"
-        href="#pages/Home"
-        data-page="home"
-        aria-label="Connectéo accueil"
-      >
-        <div className="brand-mark"></div>
-        <span className="brand-name">Connectéo</span>
-      </a>
-
-      <nav>
+    <>
+      <header id="mainHeader">
         <a
+          className="brand"
           href="#pages/Home"
           data-page="home"
-          className={currentPage === "pages/Home" || currentPage === "home" ? "active" : ""}
+          aria-label="Connectéo accueil"
         >
-          Accueil
+          <div className="brand-mark"></div>
+          <span className="brand-name">Connectéo</span>
         </a>
 
-        <a
-          href="#pages/Download"
-          data-page="download"
-          className={currentPage === "pages/Download" || currentPage === "download" ? "active" : ""}
-        >
-          Télécharger
-        </a>
+        <nav>
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.page}
+              href={link.href}
+              data-page={link.page}
+              className={link.matches.includes(currentPage) ? "active" : ""}
+            >
+              {link.label}
+            </a>
+          ))}
+        </nav>
 
-        <a
-          href="#pages/About"
-          data-page="about"
-          className={currentPage === "pages/About" || currentPage === "about" ? "active" : ""}
-        >
-          À propos
-        </a>
-      </nav>
-
-      {isAuthenticated ? (
-        <div className="account-menu" ref={accountRef}>
-          <button
-            type="button"
-            className="avatar-button"
-            aria-label="Ouvrir le menu du compte"
-            aria-haspopup="menu"
-            aria-expanded={isMenuOpen}
-            onClick={() => setIsMenuOpen((open) => !open)}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="12" cy="8" r="3.5" />
-              <path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6" />
-            </svg>
-          </button>
-
-          {isMenuOpen && (
-            <div className="account-dropdown" role="menu">
+        <div className="header-right">
+          {isAuthenticated ? (
+            <div className="account-menu" ref={accountRef}>
               <button
                 type="button"
-                role="menuitem"
-                className="sign-out-button"
-                disabled={isSigningOut}
-                onClick={handleSignOut}
+                className="avatar-button"
+                aria-label="Ouvrir le menu du compte"
+                aria-haspopup="menu"
+                aria-expanded={isMenuOpen}
+                onClick={() => setIsMenuOpen((open) => !open)}
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M10 17l5-5-5-5M15 12H3" />
-                  <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+                  <circle cx="12" cy="8" r="3.5" />
+                  <path d="M5.5 20c.5-4 2.7-6 6.5-6s6 2 6.5 6" />
                 </svg>
-                {isSigningOut ? "Déconnexion..." : "Se déconnecter"}
               </button>
+
+              {isMenuOpen && (
+                <div className="account-dropdown" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="sign-out-button"
+                    disabled={isSigningOut}
+                    onClick={handleSignOut}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M10 17l5-5-5-5M15 12H3" />
+                      <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+                    </svg>
+                    {isSigningOut ? "Déconnexion..." : "Se déconnecter"}
+                  </button>
+                </div>
+              )}
             </div>
+          ) : (
+            <button type="button" className="header-action" onClick={goToAuth}>
+              Se connecter
+            </button>
           )}
+
+          <button
+            type="button"
+            className={`menu-btn ${isMobileOpen ? "open" : ""}`}
+            aria-label="Menu"
+            aria-expanded={isMobileOpen}
+            onClick={() => setIsMobileOpen((open) => !open)}
+          >
+            <svg className="icon-burger" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="4" y1="7" x2="20" y2="7" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="17" x2="20" y2="17" />
+            </svg>
+            <svg className="icon-close" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
         </div>
-      ) : (
-        <button type="button" className="header-action" onClick={goToAuth}>
-          Se connecter
-        </button>
-      )}
-    </header>
+      </header>
+
+      <div
+        className={`menu-backdrop ${isMobileOpen ? "show" : ""}`}
+        onClick={() => setIsMobileOpen(false)}
+      />
+      <aside className={`mobile-menu ${isMobileOpen ? "open" : ""}`}>
+        {NAV_LINKS.map((link) => (
+          <a
+            key={link.page}
+            href={link.href}
+            className={link.matches.includes(currentPage) ? "active" : ""}
+          >
+            {link.label}
+          </a>
+        ))}
+        {!isAuthenticated && (
+          <button type="button" className="menu-cta" onClick={goToAuth}>
+            Se connecter
+          </button>
+        )}
+      </aside>
+    </>
   );
 }

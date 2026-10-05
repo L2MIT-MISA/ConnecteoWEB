@@ -60,7 +60,7 @@
 }
 .result-map-marker { width:30px; height:30px; display:grid; place-items:center; border:3px solid #fff; border-radius:50% 50% 50% 0; background:#b8a75f; color:#fff; box-shadow:0 4px 12px rgba(0,0,0,.45); transform:rotate(-45deg); cursor:pointer; transition:.2s ease; }
 .result-map-marker.selected { background:#244c31; transform:rotate(-45deg) scale(1.25); }
-.result-map-popup { min-width:220px; display:flex; flex-direction:column; gap:7px; color:#fff; }
-.result-map-popup strong { font-size:15px; }
-.result-map-popup span { color:#c7d1ca; font-size:12px; line-height:1.4; }
-.result-map-popup em { color:#d6c98f; font-size:12px; font-style:normal; font-weight:700; }
+.result-map-popup { min-width:220px; display:flex; flex-direction:column; gap:7px; color:#16161a; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+.result-map-popup strong { color:#16161a; font-size:15px; }
+.result-map-popup span { color:#56565e; font-size:12px; line-height:1.4; }
+.result-map-popup em { color:#2f5fff; font-size:12px; font-style:normal; font-weight:700; }
