@@ -82,7 +82,7 @@ export default function SearchPage() {
         const parsed = await parseSearchQuery(query);
         if (parsed.category) {
           addMessage({ from: "ai", text: `Voici les résultats pour « ${query} ».` });
-          runSearch(parsed); // loading est remis à false par le useEffect
+          runSearch(parsed); 
           return;
         }
       }
