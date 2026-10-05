@@ -544,10 +544,6 @@
 }
 
 
-/* À AJOUTER à la fin de SearchResults.css
-   (si tu as déjà collé l'ancien bloc ".sr-chat / .sr-msg", SUPPRIME-LE d'abord) */
-
-/* ───────── Lien "Reprendre la conversation" (vue résultats) ───────── */
 .sr-chat-link {
   display: inline-flex;
   align-items: center;
@@ -570,7 +566,6 @@
   stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 
-/* ───────── Vue assistant (plein panneau) ───────── */
 .sr-assist { background: #fff; }
 
 .sr-assist-head {
