@@ -33,6 +33,12 @@ CLE_API_BRAVE = os.getenv("BRAVE_API_KEY", "")
 URL_OLLAMA = os.getenv("OLLAMA_URL", "http://localhost:11434")
 MODELE_REDACTION = os.getenv("MODELE", "qwen3:4b")
 MODELE_VECTEURS = os.getenv("MODELE_EMBEDDING", "bge-m3")
+
+# --- OpenRouter (remplace Ollama pour la rédaction si clé API présente) -----------------------------------------
+CLE_API_OPENROUTER = os.getenv("OPENROUTER_API_KEY", "")
+MODELE_OPENROUTER = os.getenv("MODELE_OPENROUTER", "openrouter/inclusionai/ling-3.1-flash:thinking")
+URL_OPENROUTER = "https://openrouter.ai/api/v1/chat/completions"
+UTILISER_OPENROUTER = bool(CLE_API_OPENROUTER)
 DIMENSION_VECTEUR = 1024                      # doit correspondre à vector(1024) dans schema_rag.sql
 DUREE_MODELE_EN_MEMOIRE = "30m"               # keep_alive d'Ollama
 URL_NOMINATIM = "https://nominatim.openstreetmap.org/search"

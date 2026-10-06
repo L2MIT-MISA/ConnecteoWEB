@@ -43,29 +43,44 @@ def calculer_vecteur_de_la_requete(texte: str) -> tuple[float, ...]:
     return tuple(calculer_vecteurs([texte])[0])
 
 
-def _demander_json_au_modele(messages: list[dict], classe_reponse: type[BaseModel], nombre_de_tokens_max: int):
+def _demander_json_openrouter(messages: list[dict], classe_reponse: type[BaseModel], nombre_de_tokens_max: int):
+    """Appel à l'API OpenRouter (format OpenAI-compatible)."""
+    headers = {
+        "Authorization": f"Bearer {config.CLE_API_OPENROUTER}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/connecteo",
+        "X-Title": "Connecteo Madagascar Geo",
+    }
     donnees_envoyees = {
-        "model": config.MODELE_REDACTION,
+        "model": config.MODELE_OPENROUTER,
         "messages": messages,
-        "stream": False,
-        "think": False,
-        "keep_alive": config.DUREE_MODELE_EN_MEMOIRE,
-        "format": classe_reponse.model_json_schema(),
-        "options": {"temperature": 0.1, "num_ctx": CONTEXTE_EN_TOKENS, "num_predict": nombre_de_tokens_max},
+        "temperature": 0.1,
+        "max_tokens": nombre_de_tokens_max,
+        "response_format": {"type": "json_schema", "json_schema": {"name": classe_reponse.__name__, "schema": classe_reponse.model_json_schema()}},
     }
 
     with _file_d_attente_redaction:
         for numero_tentative in range(1, NOMBRE_DE_TENTATIVES + 1):
             try:
-                reponse = httpx.post(f"{config.URL_OLLAMA}/api/chat", json=donnees_envoyees,
+                reponse = httpx.post(config.URL_OPENROUTER, headers=headers, json=donnees_envoyees,
                                      timeout=DELAI_REDACTION_EN_SECONDES)
                 reponse.raise_for_status()
-
-                return classe_reponse.model_validate_json(reponse.json()["message"]["content"])
+                contenu = reponse.json()["choices"][0]["message"]["content"]
+                return classe_reponse.model_validate_json(contenu)
             except (httpx.HTTPError, ValidationError, KeyError) as erreur:
-                journal.warning("Réponse du modèle inutilisable (tentative %d/%d) : %s",
+                journal.warning("Réponse OpenRouter inutilisable (tentative %d/%d) : %s",
                                 numero_tentative, NOMBRE_DE_TENTATIVES, erreur)
 
+    return None
+
+
+def _demander_json_au_modele(messages: list[dict], classe_reponse: type[BaseModel], nombre_de_tokens_max: int):
+    """Utilise OpenRouter si clé configurée, renvoie None sinon (pas de fallback Ollama)."""
+    if config.UTILISER_OPENROUTER:
+        return _demander_json_openrouter(messages, classe_reponse, nombre_de_tokens_max)
+
+    # Pas de fallback Ollama si clé OpenRouter non définie
+    journal.info("Clé OpenRouter non configurée, réponse IA abandonnée")
     return None
 
 
@@ -80,10 +95,15 @@ def extraire_lieux(messages: list[dict]) -> ReponseDuModele | None:
 def prechauffer_modeles():
     try:
         calculer_vecteurs(["préchauffage"])
-        reponse = httpx.post(f"{config.URL_OLLAMA}/api/chat", timeout=DELAI_REDACTION_EN_SECONDES, json={
-            "model": config.MODELE_REDACTION, "messages": [{"role": "user", "content": "ok"}], "stream": False,
-            "think": False, "keep_alive": config.DUREE_MODELE_EN_MEMOIRE,
-            "options": {"num_ctx": CONTEXTE_EN_TOKENS, "num_predict": 1}})
-        reponse.raise_for_status()
+        if config.UTILISER_OPENROUTER:
+            headers = {
+                "Authorization": f"Bearer {config.CLE_API_OPENROUTER}",
+                "Content-Type": "application/json",
+            }
+            reponse = httpx.post(config.URL_OPENROUTER, headers=headers, timeout=DELAI_REDACTION_EN_SECONDES, json={
+                "model": config.MODELE_OPENROUTER, "messages": [{"role": "user", "content": "ok"}], "max_tokens": 1})
+            reponse.raise_for_status()
+        else:
+            journal.info("Clé OpenRouter non configurée, préléchauffage skipped (modèle non disponible)")
     except (httpx.HTTPError, ValueError) as erreur:
         journal.warning("Préchauffage des modèles impossible : %s", erreur)
