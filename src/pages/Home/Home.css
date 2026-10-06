@@ -57,13 +57,31 @@
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background-size: cover;
-  background-position: center;
+  background-color: #070b2e;
   color: var(--text);
   /* Courbe signature : arche elliptique en bas, dans le langage des 60px du carrousel */
   border-bottom-left-radius: 50% 72px;
   border-bottom-right-radius: 50% 72px;
 }
+/* Diaporama de couverture : les photos fondent enchaînées sous le voile sombre */
+#page-accueil .hero__bgs, #page-accueil .hero__bg, #page-accueil .hero__scrim { position: absolute; inset: 0; }
+#page-accueil .hero__bg { background-size: cover; background-position: center; opacity: 0; transition: opacity 1.2s ease; }
+#page-accueil .hero__bg.active { opacity: 1; }
+#page-accueil .hero__scrim {
+  background:
+    linear-gradient(180deg,rgba(5,8,40,.62) 0%,rgba(5,8,40,.25) 18%,rgba(5,8,40,0) 30%),
+    linear-gradient(180deg,rgba(8,12,52,.6) 0%,rgba(10,16,70,.4) 40%,rgba(8,12,52,.55) 100%),
+    linear-gradient(90deg,rgba(8,12,52,.55) 0%,rgba(8,12,52,.1) 60%);
+}
+#page-accueil .hero > *:not(.hero__bgs):not(.hero__scrim) { position: relative; z-index: 1; }
+/* Titre + texte synchronisés avec la photo */
+#page-accueil .hero__swap { animation: heroSwap .7s ease both; }
+@keyframes heroSwap { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+/* Pastilles du diaporama */
+#page-accueil .hero__dots { display: flex; justify-content: center; gap: 8px; margin-top: 22px; }
+#page-accueil .hero__dots button { width: 26px; height: 5px; padding: 0; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .35); cursor: pointer; transition: width .3s, background .3s; }
+#page-accueil .hero__dots button:hover { background: rgba(255, 255, 255, .6); }
+#page-accueil .hero__dots button.active { width: 40px; background: #fff; }
 #page-accueil .brand { display: inline-flex; align-items: center; gap: 9px; font-weight: 700; font-size: 1.05rem; color: #fff; }
 #page-accueil .brand svg { color: var(--violet); }
 
@@ -186,4 +204,5 @@
 @media (prefers-reduced-motion: reduce) {
   #page-accueil html, #page-accueil .track { scroll-behavior: auto; }
   #page-accueil * { transition: none !important; }
+  #page-accueil .hero__swap { animation: none; }
 }

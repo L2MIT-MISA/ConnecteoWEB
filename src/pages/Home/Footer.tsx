@@ -1,15 +1,19 @@
+import { useLang } from "../../i18n/LanguageContext";
+
 function go(hash: string) {
   window.location.hash = hash;
 }
 
 export default function Footer() {
+  const { t } = useLang();
+  const f = t.footer;
   return (
     <footer className="footer">
       <div className="footer__inner">
         <a
           className="brand"
           href="#accueil"
-          aria-label="Connectéo — retour en haut"
+          aria-label={f.backToTop}
           onClick={(e) => {
             e.preventDefault();
             document.getElementById("accueil")?.scrollIntoView({ behavior: "smooth" });
@@ -21,19 +25,19 @@ export default function Footer() {
           </svg>
           Connectéo
         </a>
-        <nav className="footer__nav" aria-label="Navigation secondaire">
+        <nav className="footer__nav" aria-label={f.secondaryNav}>
           <button type="button" onClick={() => go("#pages/Download")}>
-            Télécharger
+            {f.download}
           </button>
           <button type="button" onClick={() => go("#pages/About")}>
-            À propos
+            {f.about}
           </button>
           <button type="button" onClick={() => go("#pages/Auth")}>
-            Se connecter
+            {f.connect}
           </button>
         </nav>
       </div>
-      <p className="footer__note">Connectéo — la carte de Madagascar, même hors connexion.</p>
+      <p className="footer__note">{f.note}</p>
     </footer>
   );
 }

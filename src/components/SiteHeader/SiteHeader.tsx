@@ -1,27 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { LANGS } from "../../i18n/index";
+import { useLang } from "../../i18n/LanguageContext";
 import { signOut } from "../../services/auth";
 import { supabase } from "../../services/supabase";
 import "./SiteHeader.css";
 
 export type SiteHeaderVariant = "hero" | "page";
-
-const LANGS = [
-  { code: "MG", label: "Malagasy" },
-  { code: "FR", label: "Français" },
-  { code: "EN", label: "English" },
-] as const;
-
-type LangCode = (typeof LANGS)[number]["code"];
-
-function getInitialLang(): LangCode {
-  try {
-    const saved = localStorage.getItem("connecteo-lang");
-    if (saved === "MG" || saved === "EN" || saved === "FR") return saved;
-  } catch {
-    /* stockage indisponible */
-  }
-  return "FR";
-}
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -50,7 +34,7 @@ function getActive(page: string): ActiveKey {
 export default function SiteHeader({ variant, page }: { variant: SiteHeaderVariant; page: string }) {
   const home = isHomePage(page);
   const active = getActive(page);
-  const [lang, setLang] = useState<LangCode>(getInitialLang);
+  const { lang, setLang, t } = useLang();
   const [langOpen, setLangOpen] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -93,16 +77,6 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [langOpen, accountOpen]);
-
-  function chooseLang(code: LangCode) {
-    setLang(code);
-    try {
-      localStorage.setItem("connecteo-lang", code);
-    } catch {
-      /* stockage indisponible */
-    }
-    setLangOpen(false);
-  }
 
   function goAccueil() {
     setMobileOpen(false);
@@ -175,14 +149,14 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
             onClick={(e) => { e.preventDefault(); goAccueil(); }}
             aria-current={active === "accueil" ? "page" : undefined}
           >
-            Accueil
+            {t.nav.home}
           </a>
           <a
             className="site-header__link"
             href="#galerie"
             onClick={(e) => { e.preventDefault(); goDecouvrir(); }}
           >
-            Découvrir
+            {t.nav.discover}
           </a>
           <a
             className={linkClass("telecharger")}
@@ -190,7 +164,7 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
             onClick={(e) => { e.preventDefault(); goTelecharger(); }}
             aria-current={active === "telecharger" ? "page" : undefined}
           >
-            Télécharger
+            {t.nav.download}
           </a>
           <a
             className={linkClass("about")}
@@ -198,7 +172,7 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
             onClick={(e) => { e.preventDefault(); goAbout(); }}
             aria-current={active === "about" ? "page" : undefined}
           >
-            À propos
+            {t.nav.about}
           </a>
           <div className="site-header__lang" ref={langRef}>
             <button
@@ -206,7 +180,7 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
               className="site-header__langbtn"
               aria-haspopup="menu"
               aria-expanded={langOpen}
-              aria-label="Choisir la langue"
+              aria-label={t.nav.chooseLanguage}
               onClick={() => setLangOpen((open) => !open)}
             >
               {lang}
@@ -215,7 +189,7 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
               </svg>
             </button>
             {langOpen && (
-              <div className="site-header__menu" role="menu" aria-label="Langues disponibles">
+              <div className="site-header__menu" role="menu" aria-label={t.nav.languageMenu}>
                 {LANGS.map((item) => (
                   <button
                     key={item.code}
@@ -223,7 +197,7 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
                     role="menuitemradio"
                     aria-checked={lang === item.code}
                     className={lang === item.code ? "active" : ""}
-                    onClick={() => chooseLang(item.code)}
+                    onClick={() => { setLang(item.code); setLangOpen(false); }}
                   >
                     {item.label}
                     {lang === item.code && (
@@ -243,7 +217,7 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
                 className="site-header__avatar"
                 aria-haspopup="menu"
                 aria-expanded={accountOpen}
-                aria-label="Mon compte"
+                aria-label={t.nav.account}
                 onClick={() => setAccountOpen((open) => !open)}
               >
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -259,21 +233,21 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
                     disabled={signingOut}
                     onClick={handleSignOut}
                   >
-                    {signingOut ? "Déconnexion…" : "Se déconnecter"}
+                    {signingOut ? t.nav.signingOut : t.nav.signOut}
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <button type="button" className="site-header__btn" onClick={goAuth}>
-              S&apos;y connecter
+              {t.nav.connect}
             </button>
           )}
         </nav>
         <button
           type="button"
           className="site-header__burger"
-          aria-label="Ouvrir le menu"
+          aria-label={t.nav.openMenu}
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen((open) => !open)}
         >
@@ -285,17 +259,17 @@ export default function SiteHeader({ variant, page }: { variant: SiteHeaderVaria
         </button>
       </header>
       {mobileOpen && (
-        <div className={`site-header__panel${variant === "page" ? " site-header__panel--page" : ""}`} role="menu" aria-label="Menu mobile">
-          <button type="button" role="menuitem" className={active === "accueil" ? "active" : ""} onClick={goAccueil}>Accueil</button>
-          <button type="button" role="menuitem" onClick={goDecouvrir}>Découvrir</button>
-          <button type="button" role="menuitem" className={active === "telecharger" ? "active" : ""} onClick={goTelecharger}>Télécharger</button>
-          <button type="button" role="menuitem" className={active === "about" ? "active" : ""} onClick={goAbout}>À propos</button>
+        <div className={`site-header__panel${variant === "page" ? " site-header__panel--page" : ""}`} role="menu" aria-label={t.nav.mobileMenu}>
+          <button type="button" role="menuitem" className={active === "accueil" ? "active" : ""} onClick={goAccueil}>{t.nav.home}</button>
+          <button type="button" role="menuitem" onClick={goDecouvrir}>{t.nav.discover}</button>
+          <button type="button" role="menuitem" className={active === "telecharger" ? "active" : ""} onClick={goTelecharger}>{t.nav.download}</button>
+          <button type="button" role="menuitem" className={active === "about" ? "active" : ""} onClick={goAbout}>{t.nav.about}</button>
           {authed ? (
             <button type="button" role="menuitem" disabled={signingOut} onClick={handleSignOut}>
-              {signingOut ? "Déconnexion…" : "Se déconnecter"}
+              {signingOut ? t.nav.signingOut : t.nav.signOut}
             </button>
           ) : (
-            <button type="button" role="menuitem" className="site-header__panel-cta" onClick={goAuth}>S&apos;y connecter</button>
+            <button type="button" role="menuitem" className="site-header__panel-cta" onClick={goAuth}>{t.nav.connect}</button>
           )}
         </div>
       )}

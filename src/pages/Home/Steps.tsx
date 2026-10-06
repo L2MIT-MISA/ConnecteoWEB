@@ -1,44 +1,39 @@
+import { useLang } from "../../i18n/LanguageContext";
+
 export interface Step {
   n: number;
   title: string;
   text: string;
-  /** Question pré-remplie dans la recherche (box 1) */
   example?: string;
-  /** Section vers laquelle défiler au clic (box 2 et 3) */
   target?: string;
 }
 
-const STEPS: Step[] = [
-  {
-    n: 1,
-    title: "Posez votre question",
-    text: "Dites-nous ce que vous cherchez : un service, un lieu, une démarche ou une aide locale.",
-    example: "Une pharmacie à Antananarivo",
-  },
-  {
-    n: 2,
-    title: "Explorer",
-    text: "Explorer les destinations et la connectivité de Madagascar.",
-    target: "galerie",
-  },
-  {
-    n: 3,
-    title: "Télécharger",
-    text: "Utiliser l'application pour rester connecté 24h/24 n'importe où.",
-    target: "telecharger",
-  },
-];
+/** Cibles de défilement par position (comportement, indépendant de la langue). */
+const TARGETS: Array<string | undefined> = [undefined, "galerie", "telecharger"];
 
 export default function Steps({ onPick }: { onPick: (step: Step) => void }) {
+  const { t } = useLang();
+  const items: Step[] = t.steps.items.map((item, i) => ({
+    n: i + 1,
+    title: item.title,
+    text: item.text,
+    example: item.example,
+    target: TARGETS[i],
+  }));
+
   return (
-    <ol className="steps" aria-label="Comment ça marche">
-      {STEPS.map((step) => (
+    <ol className="steps" aria-label={t.steps.label}>
+      {items.map((step) => (
         <li key={step.n}>
           <button
             type="button"
             className="step"
             onClick={() => onPick(step)}
-            aria-label={step.target ? `${step.title} — aller à la section` : `${step.title} — essayer : ${step.example}`}
+            aria-label={
+              step.target
+                ? `${step.title} — ${t.steps.goLabel}`
+                : `${step.title} — ${t.steps.tryLabel} : ${step.example}`
+            }
           >
             <span className="step__top">
               <span className="badge" aria-hidden="true">{step.n}</span>
