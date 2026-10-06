@@ -1,0 +1,142 @@
+PROCESSUS GLOBAL DU PROJET « Connectéo » (recherche de lieux de Madagascar)
+================================================================================
+Analyse du code (aucun fichier modifié) – date : 06/10/2026
+
+1. VUE D'ENSEMBLE
+------------------
+Projet = site web + API (FastAPI) de recherche de lieux à Madagascar.
+Il combine :
+  - un référentiel officiel PostgreSQL/PostGIS (régions, districts, communes, fokontany),
+  - une base de connaissances vectorielle (pgvector) alimentée par des fichiers JSON,
+  - une recherche web (Google, SearXNG, DuckDuckGo, Wikipedia, Brave) quand rien n'est trouvé,
+  - deux modèles IA via Ollama : bge-m3 (vecteurs) et qwen3:4b (rédaction/extraction).
+
+Résultat : pour une requête, on renvoie un fichier JSON (statut, lieux, coordonnées,
+carte, sources, avertissements) dans donnees/resultats/<id>.json.
+
+
+2. DÉMARRAGE (demarrer.py)
+--------------------------
+- python demarrer.py :
+    1) diagnostic.diagnostiquer_services() -> état PostgreSQL, Ollama, moteur Google.
+    2) uvicorn lance api.py (http://localhost:8000).
+- api.py au démarrage (lifespan) : un fil d'arrière-plan exécute
+    a) modele_ia.prechauffer_modeles()  : charge bge-m3 et qwen3:4b en mémoire,
+    b) indexation.reindexer_regulierement() : indexe les fichiers JSON, puis re-indexe
+       toutes les 10 minutes (seuls les fichiers modifiés sont re-vectorisés).
+
+
+3. INDEXATION DES CONNAISSANCES (indexation.py + connaissances_json.py)
+-----------------------------------------------------------------------
+1) connaissances_json.lire_documents() lit les JSON de donnees/lieux, donnees/produits,
+   donnees/complementaires.
+2) connaissances_json.construire_fragments() transforme chaque enregistrement en fragments
+   (texte + mots-clés + coordonnées + produit + catégorie...). Nettoyage automatique :
+   coordonnées inversées/oubli du signe « - » réparés, liens OSM retirés, précision déduite.
+3) base_donnees.trouver_noms_parents() complète région/district via la hiérarchie officielle.
+4) Pour chaque fragment : empreinte (hash sha1). Comparaison avec les empreintes déjà en base :
+   - nouveaux fragments -> modele_ia.calculer_vecteurs() (bge-m3, 1024 dimensions),
+     puis base_donnees.enregistrer_fragments() (INSERT ... ON CONFLICT DO NOTHING),
+   - fragments dont le fichier a changé -> suppression des anciens (après insertion),
+   - fichiers supprimés -> base_donnees.supprimer_fragments_des_fichiers_absents().
+Bilan : nouvelles / inchangées / supprimées.
+
+
+4. TRAITEMENT D'UNE RECHERCHE (recherche.py = orchestrateur)
+------------------------------------------------------------
+Route : POST /recherche {"requete": "cacao"} -> recherche.lancer_recherche().
+
+Étape 1 – Analyse de la requête (requete.py)
+    - outils.extraire_mots_utiles() enlève mots vides/abréviations.
+    - synonymes : config.GROUPES_DE_SYNONYMES (ex. cacao -> cacao = chocolat...).
+    -> RequeteAnalysee(texte_original, mots_cles, mots_cles_avec_synonymes, groupes).
+
+Étape 2 – Cas particuliers
+    - Aucun mot utile (« aide ») -> resultat_json.assembler_clarification()
+      (type "choix_categorie", options de config.OPTIONS_DE_CLARIFICATION). La page
+      affiche la fenêtre de précision ; « Une urgence » -> assembler_urgence() directement.
+
+Étape 3 – Cache
+    - clé = mots-clés triés ; si présent (< 10 min) on renvoie le résultat en cache.
+
+Étape 4 – Recherche en parallèle (ThreadPoolExecutor)
+    a) trouver_lieux_du_referentiel() : base_donnees.chercher_lieux_du_referentiel()
+       (similarité de nom via pg_trgm sur region/district/commune/fokontany).
+    b) chercher_connaissances() :
+       - modele_ia.calculer_vecteur_de_la_requete() (bge-m3), mise en cache LRU,
+       - base_donnees.chercher_fragments() : recherche HYBRIDE pgvector (similarité
+         cosinus = 1 - (vecteur <=> vecteur_requete)) + mots-clés (index GIN),
+       - filtrage : similarité >= SEUIL_SIMILARITE_FRAGMENT (0,45) OU couverture
+         mots-clés >= SEUIL_COUVERTURE_MOTS_CLES, puis bonus de mots-clés communs.
+
+Étape 5 – Coordonnées (coordonnees.py)
+    - completer_coordonnees() : pour chaque lieu sans coordonnées -> référentiel officiel
+      (même niveau + nom proche >= 0,85), sinon Nominatim si autorisé (complète l'adresse).
+    - précision : precis (site) / centroide (ville, zone) / repli_hierarchique.
+    - Les lieux sans coordonnées vérifiables sont écartés (jamais inventés).
+
+Étape 6 – Choix du chemin (variable utiliser_google = absence de connaissances)
+    CAS A : des connaissances existent (base pgvector)
+        - classer_lieux() : score = 0,45*pertinence + 0,15*note Google (ajustée)
+          + 0,15*confiance + 0,10*origine + 0,15*précision ; dédoublonnage.
+        - modele_ia.rediger_resume() avec construire_messages_resume() (voir §5).
+        - resultat = statut "termine", source_principale "referentiel"/"base_connaissances".
+    CAS B : rien trouvé -> recherche Google en arrière-plan
+        - recherche_web.chercher_pages_sur_google() (ordre de config.ORDRE_FOURNISSEURS_RECHERCHE),
+        - modele_ia.extraire_lieux() avec construire_messages_extraction(),
+        - convertir_lieux_proposes() : chaque lieu doit citer sa source (R1/W1...) ;
+          les coordonnées ne sont acceptées QUE si écrites dans la source citée
+          (coordonnees_citees_dans_la_source),
+        - compléter les coordonnées, classer, puis MEMORISER :
+          connaissances_json.enregistrer_lieu_dans_json() -> nouveaux JSON enregistrés
+          -> indexation.indexer_fichiers() (la base apprend : la même recherche n'ira
+          plus sur Google).
+    Échec ou modèle muet -> réponse rédigée automatiquement (rediger_resume_sans_modele)
+    ou "aucun lieu", avec avertissements dans le JSON.
+
+Étape 7 – Écriture et polling
+    - resultat_json.ecrire_resultat() écrit donnees/resultats/<id>.json ;
+    - la page relit GET /resultats/<id> toutes les 2 s tant que statut == "en_cours".
+
+Étape 8 – Précision (POST /recherche/preciser)
+    - clarification.trouver_option() ; si option "urgence" -> assembler_urgence() ;
+    - si précision texte nécessaire -> clarification de type "saisie_libre" ;
+    - sinon on fusionne texte initial + texte libre + termes de l'option et on
+      relance lancer_recherche(..., deja_precise=True) (au max une fois, pas de boucle).
+
+
+5. SYSTÈME DE PROMPTS (prompts.py) – à part, explication détaillée ci-dessous
+------------------------------------------------------------------------------
+Deux prompts système (message "system") envoyés à qwen3:4b via Ollama /api/chat :
+  a) PROMPT_RESUME  -> rediger_resume() : résume les lieux trouvés (2 phrases max,
+     JSON strict : {intention, reponse, mots_cles}).
+  b) PROMPT_EXTRACTION -> extraire_lieux() : extrait les lieux des sources Google
+     (JSON strict : {intention, reponse, mots_cles, lieux[] avec reference_source,
+     coordonnées recopiées seulement si écrites dans la source, sinon null}).
+Détails dans la section « Qu'est-ce que le système de prompt ? » de la réponse.
+
+
+6. CLASSEMENT (classement.py)
+-----------------------------
+- score note Google ajusté (Bayesien vers 3,5/5 pour peu d'avis),
+- poids selon origine (référentiel 1,0 > connaissances 0,8 > google 0,5),
+- précision des coordonnées (precis 1,0 > centroide 0,6 > repli 0,2),
+- doublons fusionnés (même nom+district+produit), 30 lieux max.
+
+
+7. RÉSULTAT (resultat_json.py)
+------------------------------
+- assembler_resultat() : statut termine/en_cours/erreur, requete, reponse{texte,
+  source_principale, recherche_google}, lieux[], carte{centre, emprise, zoom},
+  sources[], clarification, urgence, avertissements[].
+- Cache de 10 min sur les requêtes identiques.
+
+
+8. DIVERS
+---------
+- config.py centralise : URL services, seuils, poids, synonymes, options clarification,
+  numéros d'urgence (à renseigner), emprise Madagascar (lat -26..-11,5, lon 42,5..51).
+- nettoyage.py / generer_fichier_complementaire.py : Excel opérateurs -> CSV/JSON propres.
+- outils.py : normalisation, mots utiles, synonymes, validation de coordonnées.
+- schema_rag.sql : table collecte.fragment_lieu (vecteur vector(1024), index HNSW),
+  referentiel PostGIS (region, district, commune, fokontany), infrastructure.pylone...

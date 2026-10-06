@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connectéo</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+<style>
+:root {
+  --bg:#fafaf7; --bg-elev:#ffffff; --bg-soft:#f2f2ee;
+  --ink:#16161a; --ink-soft:#56565e; --ink-muted:#8e8e96;
+  --accent:#2f5fff; --accent-soft:#eef2ff; --accent-ink:#1e3fbf;
+  --accent-light:#7a9bff;
+  --line:#e8e8ec; --line-strong:#d6d6dc; --danger:#e5484d;
+  --shadow-sm:0 1px 2px rgba(22,22,26,.04), 0 4px 12px rgba(22,22,26,.04);
+  --shadow-md:0 4px 16px rgba(22,22,26,.06), 0 12px 32px rgba(22,22,26,.08);
+  --shadow-xl:0 20px 60px rgba(0,0,0,.35), 0 60px 120px rgba(0,0,0,.25);
+  --shadow-lg:0 12px 40px rgba(22,22,26,.10), 0 30px 80px rgba(22,22,26,.12);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --ease-spring:cubic-bezier(.34,1.3,.64,1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; }
+body {
+  font-family:'Inter', system-ui, -apple-system, sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+  overflow:hidden;
+  height:100vh;
+  height:100dvh;
+  font-feature-settings:"cv02","cv03","cv04","cv11";
+  background:var(--bg) url('fond.jpg') center/cover no-repeat;
+  display:grid;
+  grid-template-rows:auto 1fr;
+}
+
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 45%, rgba(0,0,0,.15) 0%, rgba(0,0,0,.35) 70%, rgba(0,0,0,.55) 100%),
+    linear-gradient(180deg, rgba(0,0,0,.3) 0%, transparent 25%, transparent 65%, rgba(0,0,0,.45) 100%);
+}
+
+/* ═════════ HEADER ═════════ */
+header {
+  position:relative; z-index:1000;
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 40px;
+  gap:20px;
+}
+.brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); cursor:pointer; z-index:2; }
+.brand-mark {
+  width:30px; height:30px; border-radius:9px;
+  background:var(--ink); position:relative; flex-shrink:0; overflow:hidden;
+  transition:transform .5s var(--ease);
+}
+.brand:hover .brand-mark { transform:rotate(90deg); }
+.brand-mark::before, .brand-mark::after { content:""; position:absolute; border-radius:50%; background:var(--accent); }
+.brand-mark::before { inset:8px; }
+.brand-mark::after { inset:13px; background:var(--bg-elev); }
+.brand-name { font-size:1.05rem; font-weight:700; letter-spacing:-.03em; }
+
+nav { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; gap:32px; }
+nav a { color:var(--ink-soft); text-decoration:none; font-size:.86rem; font-weight:500; position:relative; transition:color .2s ease; cursor:pointer; }
+nav a:hover, nav a.active { color:var(--ink); }
+nav a.active::after { content:''; position:absolute; left:0; right:0; bottom:-22px; height:2px; background:var(--accent); border-radius:1px; }
+
+.header-action {
+  background:var(--accent); color:#fff; border:0;
+  padding:9px 18px; border-radius:9px;
+  font-family:inherit; font-size:.84rem; font-weight:600; cursor:pointer;
+  transition:transform .2s var(--ease), background .2s ease, box-shadow .2s ease;
+  box-shadow:0 4px 14px rgba(47,95,255,.25);
+}
+.header-action:hover { transform:translateY(-1px); background:var(--accent-ink); box-shadow:0 6px 20px rgba(47,95,255,.35); }
+
+.menu-btn {
+  display:none;
+  width:42px; height:42px;
+  border-radius:11px;
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--ink);
+  cursor:pointer;
+  align-items:center; justify-content:center;
+  transition:all .2s var(--ease);
+  z-index:1100;
+  flex-shrink:0;
+}
+.menu-btn:hover { background:var(--bg-soft); }
+.menu-btn svg { width:20px; height:20px; stroke:currentColor; stroke-width:2; stroke-linecap:round; fill:none; }
+.menu-btn .icon-close { display:none; }
+.menu-btn.open .icon-burger { display:none; }
+.menu-btn.open .icon-close { display:block; }
+
+.mobile-menu {
+  position:fixed;
+  top:0; right:0;
+  width:min(340px, 88vw);
+  height:100vh; height:100dvh;
+  background:#fff;
+  z-index:1050;
+  padding:90px 28px 28px;
+  transform:translateX(100%);
+  transition:transform .35s var(--ease);
+  box-shadow:-20px 0 60px rgba(22,22,26,.15);
+  display:flex; flex-direction:column; gap:8px; overflow-y:auto;
+}
+.mobile-menu.open { transform:translateX(0); }
+
+.mobile-menu a {
+  display:block; padding:16px 18px; border-radius:12px;
+  color:var(--ink); text-decoration:none;
+  font-size:1.05rem; font-weight:500;
+  transition:background .2s ease, color .2s ease; cursor:pointer;
+}
+.mobile-menu a:hover, .mobile-menu a.active {
+  background:var(--accent-soft); color:var(--accent-ink); font-weight:600;
+}
+.mobile-menu .menu-cta {
+  margin-top:16px; padding:16px 18px;
+  background:var(--accent); color:#fff;
+  text-align:center; border-radius:12px;
+  font-weight:600; font-size:1rem;
+  border:0; cursor:pointer; font-family:inherit;
+  transition:background .2s ease, transform .2s var(--ease);
+  box-shadow:0 6px 20px rgba(47,95,255,.25);
+}
+.mobile-menu .menu-cta:hover { background:var(--accent-ink); transform:translateY(-1px); }
+
+.menu-backdrop {
+  position:fixed; inset:0;
+  background:rgba(22,22,26,.4);
+  backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  z-index:1040;
+  opacity:0; pointer-events:none;
+  transition:opacity .3s ease;
+}
+.menu-backdrop.show { opacity:1; pointer-events:auto; }
+
+/* ═════════ MAIN ═════════ */
+main { position:relative; overflow:hidden; z-index:1; }
+
+/* ═════════ VUE 1 — ACCUEIL ═════════ */
+#view-home { position:absolute; inset:0; display:flex; flex-direction:column; transition:opacity .4s var(--ease); }
+#view-home.hidden { opacity:0; pointer-events:none; }
+
+.stage {
+  position:relative;
+  z-index:1;
+  flex:1;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding-bottom:140px;
+}
+
+.pause-btn {
+  position:absolute; top:20px; right:24px; z-index:20;
+  width:42px; height:42px; border-radius:50%;
+  background:rgba(255,255,255,.9); border:1px solid rgba(255,255,255,.3);
+  color:var(--ink);
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .25s var(--ease); box-shadow:0 4px 16px rgba(0,0,0,.25); padding:0;
+}
+.pause-btn:hover { transform:scale(1.06); background:#fff; }
+.pause-btn svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.pause-btn .icon-play { display:none; }
+.pause-btn.paused .icon-pause { display:none; }
+.pause-btn.paused .icon-play { display:block; }
+
+/* ═════════ HERO TEXT ROTATOR ═════════ */
+.hero-rotator {
+  position: relative;
+  width: min(1000px, 94vw);
+  height: 460px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: opacity .5s var(--ease), transform .5s var(--ease);
+}
+
+body.decision-open .hero-rotator {
+  opacity: 0;
+  transform: scale(.94);
+  pointer-events: none;
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 0 40px;
+  opacity: 0;
+  transition: opacity .5s var(--ease);
+  pointer-events: none;
+}
+
+.hero-slide.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.hero-slide h1 {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: clamp(2.8rem, 6.5vw, 5rem);
+  font-weight: 800;
+  letter-spacing: -.05em;
+  line-height: 1.02;
+  color: #ffffff;
+  text-shadow: 0 8px 40px rgba(0,0,0,.6), 0 2px 12px rgba(0,0,0,.45);
+}
+
+.hero-slide h1 em {
+  font-style: normal;
+  color: var(--accent-light);
+  text-shadow: 0 8px 40px rgba(47,95,255,.55), 0 2px 12px rgba(0,0,0,.45);
+}
+
+/* ── Vague par lettre ── */
+.hero-slide .letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(28px) rotateX(-40deg);
+  transform-origin: bottom center;
+  will-change: transform, opacity;
+}
+.hero-slide.active .letter {
+  animation: letterWave .75s cubic-bezier(.2,.8,.2,1) forwards;
+}
+@keyframes letterWave {
+  0%   { opacity: 0; transform: translateY(28px) rotateX(-40deg); }
+  60%  { opacity: 1; transform: translateY(-5px) rotateX(8deg); }
+  100% { opacity: 1; transform: translateY(0) rotateX(0deg); }
+}
+
+.hero-slide .letter.space {
+  transform: none !important;
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+.hero-slide p {
+  font-size: clamp(1.1rem, 1.7vw, 1.35rem);
+  color: rgba(255,255,255,.92);
+  font-weight: 400;
+  max-width: 760px;
+  line-height: 1.65;
+  letter-spacing: -.008em;
+  text-shadow: 0 3px 20px rgba(0,0,0,.55);
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity .7s var(--ease) .55s, transform .7s var(--ease) .55s;
+}
+.hero-slide.active p {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ═════════ BARRE DE RECHERCHE ACCUEIL ═════════ */
+.search-dock {
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  padding:16px 32px 36px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  background:transparent; pointer-events:none;
+  transition:padding .5s var(--ease);
+}
+.search-dock > * { pointer-events:auto; }
+
+body.in-map .search-dock,
+body.in-download .search-dock,
+body.in-about .search-dock,
+body.in-auth .search-dock { display:none; }
+
+.search-wrap { width:min(680px, 100%); }
+
+.search-bar {
+  display:flex; align-items:center; gap:10px;
+  padding:6px 6px 6px 22px;
+  background:#ffffff; border:1.5px solid rgba(255,255,255,.4); border-radius:28px;
+  box-shadow:0 12px 40px rgba(0,0,0,.35);
+  transition:border-color .2s ease, box-shadow .25s var(--ease);
+}
+.search-bar:hover { border-color:rgba(255,255,255,.7); }
+.search-bar:focus-within { border-color:var(--accent); box-shadow:0 0 0 4px rgba(47,95,255,.25), 0 12px 40px rgba(0,0,0,.35); }
+.search-bar input { flex:1; min-width:0; border:0; outline:0; background:transparent; color:var(--ink); font:400 1rem 'Inter', sans-serif; padding:13px 0; }
+.search-bar input::placeholder { color:var(--ink-muted); }
+
+.search-send {
+  border:0; width:42px; height:42px; border-radius:50%;
+  background:var(--ink); color:#fff; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:background .2s ease, transform .2s var(--ease), opacity .2s ease;
+  opacity:.35;
+}
+.search-send.enabled { opacity:1; background:var(--accent); }
+.search-send.enabled:hover { transform:scale(1.06); background:var(--accent-ink); }
+.search-send svg { width:17px; height:17px; stroke:currentColor; stroke-width:2.4; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+
+/* ═════════ BOÎTE À OPTIONS ═════════ */
+.decision-box {
+  position:fixed;
+  left:50%;
+  bottom:104px;
+  width:min(520px, 92vw);
+  max-height:min(62vh, 480px);
+  background:#ffffff;
+  border-radius:22px;
+  box-shadow:0 24px 80px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.3);
+  opacity:0;
+  pointer-events:none;
+  transform: translateX(-50%) translateY(20px) scale(.82);
+  transform-origin: bottom center;
+  transition:
+    opacity .35s var(--ease),
+    transform .5s cubic-bezier(.34,1.4,.64,1);
+  z-index:60;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.decision-box.show {
+  opacity:1;
+  transform: translateX(-50%) translateY(0) scale(1);
+  pointer-events:auto;
+}
+
+.decision-top {
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  padding:20px 22px 16px;
+  border-bottom:1px solid var(--line);
+  flex-shrink:0;
+}
+
+.decision-avatar {
+  width:40px; height:40px;
+  border-radius:12px;
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent-ink) 100%);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  box-shadow:0 6px 18px rgba(47,95,255,.3);
+}
+.decision-avatar svg {
+  width:20px; height:20px;
+  stroke:#fff; fill:none;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.decision-meta { flex:1; min-width:0; padding-top:2px; }
+.decision-label {
+  font-size:.66rem;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:5px;
+}
+.decision-question {
+  font-family:'Inter', sans-serif;
+  font-size:1.02rem;
+  font-weight:600;
+  letter-spacing:-.02em;
+  color:var(--ink);
+  line-height:1.35;
+}
+
+.decision-close {
+  width:32px; height:32px;
+  border-radius:9px;
+  border:0;
+  background:transparent;
+  color:var(--ink-muted);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background .2s ease, color .2s ease;
+  flex-shrink:0;
+  padding:0;
+}
+.decision-close:hover { background:var(--bg-soft); color:var(--ink); }
+.decision-close svg { width:16px; height:16px; stroke:currentColor; stroke-width:2.2; fill:none; stroke-linecap:round; }
+
+.decision-options {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:14px 18px 18px;
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line-strong) transparent;
+}
+.decision-options::-webkit-scrollbar { width:6px; }
+.decision-options::-webkit-scrollbar-thumb { background:var(--line-strong); border-radius:3px; }
+
+.decision-option {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:15px 18px;
+  background:var(--bg-soft);
+  border:1.5px solid transparent;
+  border-radius:14px;
+  font-family:inherit;
+  font-size:.92rem;
+  font-weight:600;
+  color:var(--ink);
+  letter-spacing:-.01em;
+  cursor:pointer;
+  text-align:left;
+  transition: transform .2s var(--ease), background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+  animation: optionIn .45s var(--ease-spring) both;
+}
+@keyframes optionIn {
+  from { opacity:0; transform:translateX(-10px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+.decision-option:hover {
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent-ink);
+  transform:translateX(4px);
+  box-shadow:0 8px 20px rgba(47,95,255,.12);
+}
+.decision-option:active { transform:translateX(2px); }
+
+.decision-option::after {
+  content:'';
+  width:14px; height:14px;
+  flex-shrink:0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e96' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: transform .25s var(--ease), background-image .25s ease;
+}
+.decision-option:hover::after {
+  transform: translateX(4px);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231e3fbf' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>");
+}
+
+.decision-option.danger { background:rgba(229,72,77,.06); color:var(--danger); }
+.decision-option.danger:hover {
+  background:rgba(229,72,77,.12); border-color:var(--danger); color:var(--danger);
+  box-shadow:0 8px 20px rgba(229,72,77,.15);
+}
+.decision-option.danger::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e5484d' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>");
+}
+
+.decision-option.success { background:rgba(34,197,94,.06); color:#15803d; }
+.decision-option.success:hover {
+  background:rgba(34,197,94,.14); border-color:#16a34a; color:#15803d;
+  box-shadow:0 8px 20px rgba(34,197,94,.15);
+}
+.decision-option.success::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>");
+}
+
+/* ═════════ VUE 2 — CARTE ═════════ */
+#view-map { position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .5s var(--ease); background:#1a1a1a; }
+#view-map.show { opacity:1; pointer-events:auto; }
+#map { position:absolute; inset:0; z-index:1; background:#1a1a1a; }
+
+.leaflet-div-icon { background:transparent; border:0; }
+.marker-pin {
+  width:32px; height:32px; border-radius:50%;
+  background:var(--accent); border:3px solid #fff;
+  box-shadow:0 4px 14px rgba(47,95,255,.6), 0 2px 6px rgba(0,0,0,.4);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-size:.7rem; font-weight:700;
+  transition:transform .2s var(--ease); cursor:pointer;
+}
+.marker-pin:hover { transform:scale(1.2); }
+.marker-pin.active { background:var(--danger); box-shadow:0 4px 14px rgba(229,72,77,.6), 0 2px 6px rgba(0,0,0,.4); transform:scale(1.25); }
+
+.leaflet-popup-content-wrapper { border-radius:12px; box-shadow:0 8px 32px rgba(22,22,26,.3); padding:0; }
+.leaflet-popup-content { margin:0; padding:14px 16px; font-family:'Inter', sans-serif; }
+.popup-title { font-weight:700; font-size:.88rem; color:var(--ink); margin-bottom:2px; }
+.popup-meta { font-size:.72rem; color:var(--ink-muted); }
+.popup-status { display:inline-flex; align-items:center; gap:5px; font-size:.7rem; font-weight:600; color:var(--accent); margin-top:6px; }
+.popup-status::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--accent); }
+.popup-status.closed { color:var(--danger); }
+.popup-status.closed::before { background:var(--danger); }
+
+/* Sidebar */
+.sidebar {
+  position:absolute; top:20px; left:20px; bottom:20px; width:380px; z-index:100;
+  background:rgba(255,255,255,.98);
+  backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-radius:20px; border:1px solid var(--line); box-shadow:var(--shadow-lg);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+
+/* Vue liste */
+.sidebar-head { padding:22px 22px 16px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.sidebar-title { font-size:1.15rem; font-weight:700; letter-spacing:-.025em; color:var(--ink); margin-bottom:4px; line-height:1.2; }
+.sidebar-count { font-size:.78rem; color:var(--ink-muted); }
+
+/* Vue détail dans la sidebar */
+.sidebar-detail {
+  display:none;
+  flex:1;
+  min-height:0;
+  flex-direction:column;
+}
+.sidebar-detail.show {
+  display:flex;
+}
+
+.detail-top-bar {
+  padding:16px 20px 12px;
+  border-bottom:1px solid var(--line);
+  flex-shrink:0;
+}
+.detail-back {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 14px 8px 10px;
+  background:var(--bg-soft);
+  border:0;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:.82rem;
+  font-weight:600;
+  color:var(--ink);
+  cursor:pointer;
+  transition:background .2s ease, color .2s ease, transform .2s var(--ease);
+}
+.detail-back:hover {
+  background:var(--accent-soft);
+  color:var(--accent-ink);
+  transform:translateX(-2px);
+}
+.detail-back svg {
+  width:14px; height:14px;
+  stroke:currentColor; fill:none;
+  stroke-width:2.4;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+
+.detail-scroll {
+  flex:1;
+  min-height:0;
+  overflow-y:auto;
+  padding:20px 22px 24px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--line-strong) transparent;
+}
+.detail-scroll::-webkit-scrollbar { width:6px; }
+.detail-scroll::-webkit-scrollbar-thumb { background:var(--line-strong); border-radius:3px; }
+
+/* En-tête du détail */
+.detail-hero {
+  display:flex;
+  gap:16px;
+  align-items:flex-start;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--line);
+  margin-bottom:20px;
+}
+.detail-icon {
+  width:56px; height:56px;
+  border-radius:16px;
+  background:var(--accent-soft);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+.detail-icon svg {
+  width:26px; height:26px;
+  stroke:var(--accent); fill:none;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.detail-hero-info { flex:1; min-width:0; }
+
+.detail-tag {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  font-size:.68rem;
+  font-weight:700;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:6px;
+}
+.detail-title {
+  font-family:'Inter', sans-serif;
+  font-size:1.15rem;
+  font-weight:700;
+  letter-spacing:-.03em;
+  color:var(--ink);
+  margin-bottom:6px;
+  line-height:1.2;
+}
+.detail-distance {
+  font-size:.82rem;
+  color:var(--ink-muted);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.detail-distance strong { color:var(--accent); font-weight:600; }
+
+.detail-status {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:.72rem;
+  font-weight:600;
+  background:rgba(34,197,94,.1);
+  color:#15803d;
+  margin-bottom:22px;
+}
+.detail-status::before {
+  content:'';
+  width:6px; height:6px;
+  border-radius:50%;
+  background:#22c55e;
+}
+.detail-status.closed {
+  background:rgba(229,72,77,.1);
+  color:var(--danger);
+}
+.detail-status.closed::before { background:var(--danger); }
+
+.detail-section { margin-bottom:22px; }
+.detail-section-title {
+  font-size:.68rem;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink-muted);
+  margin-bottom:8px;
+}
+.detail-section p {
+  font-size:.88rem;
+  color:var(--ink-soft);
+  line-height:1.7;
+}
+
+.detail-info-list { display:flex; flex-direction:column; gap:10px; }
+.detail-info-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:11px 14px;
+  background:var(--bg-soft);
+  border-radius:10px;
+  font-size:.82rem;
+}
+.detail-info-row .label { color:var(--ink-muted); font-weight:500; flex-shrink:0; }
+.detail-info-row .value {
+  color:var(--ink);
+  font-weight:600;
+  text-align:right;
+  max-width:62%;
+}
+
+.detail-action {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:100%;
+  padding:14px 20px;
+  background:var(--accent);
+  color:#fff;
+  border:0;
+  border-radius:12px;
+  font-family:inherit;
+  font-size:.88rem;
+  font-weight:600;
+  cursor:pointer;
+  transition: background .2s ease, transform .2s var(--ease), box-shadow .2s ease;
+  box-shadow:0 6px 20px rgba(47,95,255,.25);
+  margin-top:8px;
+}
+.detail-action:hover { background:var(--accent-ink); transform:translateY(-1px); box-shadow:0 8px 24px rgba(47,95,255,.35); }
+.detail-action svg {
+  width:15px; height:15px;
+  stroke:currentColor; fill:none;
+  stroke-width:2.2;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+
+.sidebar-list { flex:1; min-height:0; overflow-y:auto; padding:8px; scrollbar-width:thin; scrollbar-color:var(--line-strong) transparent; }
+.sidebar-list::-webkit-scrollbar { width:6px; }
+.sidebar-list::-webkit-scrollbar-thumb { background:var(--line-strong); border-radius:3px; }
+
+.sidebar-foot { flex-shrink:0; padding:12px 14px 14px; border-top:1px solid var(--line); }
+.sidebar-foot .search-bar { box-shadow:none; border-radius:24px; padding:4px 4px 4px 16px; }
+.sidebar-foot .search-bar:focus-within { box-shadow:0 0 0 3px rgba(47,95,255,.15); }
+.sidebar-foot .search-bar input { font-size:.85rem; padding:9px 0; }
+.sidebar-foot .search-send { width:32px; height:32px; }
+
+.result-item { display:flex; gap:12px; padding:12px 14px; border-radius:12px; cursor:pointer; transition:background .2s var(--ease); border:1px solid transparent; }
+.result-item:hover { background:var(--bg-soft); }
+.result-item.active { background:var(--accent-soft); border-color:rgba(47,95,255,.2); }
+.result-item.active .result-icon { background:var(--accent); border-color:var(--accent); }
+.result-item.active .result-icon svg { stroke:#fff; }
+
+.result-icon { width:34px; height:34px; border-radius:10px; background:var(--bg-soft); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:background .2s ease, border-color .2s ease; }
+.result-icon svg { width:16px; height:16px; stroke:var(--accent); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:stroke .2s ease; }
+
+.result-info { flex:1; min-width:0; }
+.result-name { font-size:.85rem; font-weight:600; color:var(--ink); margin-bottom:2px; letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.result-meta { font-size:.72rem; color:var(--ink-muted); display:flex; align-items:center; gap:8px; }
+.result-distance { font-weight:600; color:var(--accent); }
+.result-status { display:inline-flex; align-items:center; gap:4px; font-size:.7rem; font-weight:500; }
+.result-status::before { content:''; width:5px; height:5px; border-radius:50%; background:#22c55e; }
+.result-status.closed { color:var(--ink-muted); }
+.result-status.closed::before { background:var(--ink-muted); }
+
+/* ═════════ VUE 3 — TÉLÉCHARGER ═════════ */
+#view-download {
+  position:absolute; inset:0;
+  opacity:0; pointer-events:none;
+  transition:opacity .4s var(--ease);
+  background:transparent;
+  overflow-y:auto; overflow-x:hidden;
+}
+#view-download.show { opacity:1; pointer-events:auto; }
+
+.download-wrap { max-width:1100px; margin:0 auto; padding:64px 32px 100px; }
+
+.dl-hero { text-align:center; margin-bottom:56px; animation:heroIn .8s var(--ease) both; }
+@keyframes heroIn {
+  from { opacity:0; transform:translateY(20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.dl-eyebrow {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.25);
+  color:#ffffff;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  padding:7px 16px 7px 12px;
+  border-radius:999px;
+  font-size:.72rem; font-weight:700;
+  letter-spacing:.13em; text-transform:uppercase;
+  margin-bottom:24px;
+}
+.dl-eyebrow .dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--accent-light);
+  box-shadow:0 0 0 3px rgba(122,155,255,.3);
+  animation:blink 1.8s ease-in-out infinite;
+}
+@keyframes blink { 0%, 100% { opacity:1; } 50% { opacity:.35; } }
+
+.dl-hero h1 {
+  font-size:clamp(2rem, 4.5vw, 3.2rem);
+  font-weight:800; letter-spacing:-.045em;
+  line-height:1.08; color:#ffffff;
+  margin-bottom:20px; max-width:760px;
+  margin-left:auto; margin-right:auto;
+  text-shadow: 0 6px 30px rgba(0,0,0,.55), 0 2px 10px rgba(0,0,0,.4);
+}
+.dl-hero h1 em { font-style:normal; color:var(--accent-light); }
+.dl-hero p { font-size:clamp(.95rem, 1.4vw, 1.08rem); color:rgba(255,255,255,.85); max-width:560px; margin:0 auto; line-height:1.65; text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+
+.platforms { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; margin-bottom:70px; }
+
+.platform-card {
+  position:relative;
+  background:#ffffff;
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:32px 28px 28px;
+  display:flex; flex-direction:column; overflow:hidden;
+  transition:transform .35s var(--ease-spring), box-shadow .35s var(--ease), border-color .3s ease;
+  opacity:0; transform:translateY(24px);
+  box-shadow: 0 12px 40px rgba(0,0,0,.2);
+}
+.platform-card.in { animation:cardIn .6s var(--ease-spring) forwards; }
+.platform-card:nth-child(1).in { animation-delay:.15s; }
+.platform-card:nth-child(2).in { animation-delay:.28s; }
+.platform-card:nth-child(3).in { animation-delay:.41s; }
+@keyframes cardIn { to { opacity:1; transform:translateY(0); } }
+
+.platform-card:hover { transform:translateY(-4px); box-shadow:0 20px 50px rgba(0,0,0,.3); border-color:var(--line-strong); }
+.platform-card::before {
+  content:''; position:absolute; top:-50%; right:-50%; width:100%; height:100%;
+  border-radius:50%;
+  background:radial-gradient(circle, var(--glow, rgba(47,95,255,.08)) 0%, transparent 70%);
+  opacity:0; transition:opacity .5s ease; pointer-events:none;
+}
+.platform-card:hover::before { opacity:1; }
+.platform-card[data-platform="android"]  { --glow:rgba(61,220,132,.12); }
+.platform-card[data-platform="ios"]      { --glow:rgba(120,120,140,.12); }
+.platform-card[data-platform="harmony"]  { --glow:rgba(229,72,77,.10); }
+
+.platform-icon {
+  width:56px; height:56px; border-radius:16px;
+  background:var(--bg-soft); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:22px;
+  transition:transform .4s var(--ease-spring), background .3s ease, border-color .3s ease;
+}
+.platform-card:hover .platform-icon { transform:scale(1.08) rotate(-4deg); }
+.platform-icon svg { width:28px; height:28px; fill:var(--ink); transition:fill .3s ease; }
+.platform-card[data-platform="android"]:hover .platform-icon { background:#e8f8ee; border-color:#b8ecd0; }
+.platform-card[data-platform="android"]:hover .platform-icon svg { fill:#1a8f4e; }
+.platform-card[data-platform="ios"]:hover .platform-icon { background:#f0f0f4; border-color:#d4d4dc; }
+.platform-card[data-platform="ios"]:hover .platform-icon svg { fill:#1a1a22; }
+.platform-card[data-platform="harmony"]:hover .platform-icon { background:#fceceb; border-color:#f5cbc8; }
+.platform-card[data-platform="harmony"]:hover .platform-icon svg { fill:#c2332f; }
+
+.platform-name { font-size:1.15rem; font-weight:700; letter-spacing:-.025em; color:var(--ink); margin-bottom:4px; }
+.platform-tag { font-size:.78rem; color:var(--ink-muted); margin-bottom:20px; }
+.platform-details { list-style:none; display:flex; flex-direction:column; gap:8px; margin-bottom:24px; flex:1; }
+.platform-details li { display:flex; align-items:center; gap:9px; font-size:.82rem; color:var(--ink-soft); }
+.platform-details li::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+
+.platform-btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:9px;
+  padding:12px 20px;
+  background:var(--ink); color:#fff;
+  border:0; border-radius:11px;
+  font-family:inherit; font-size:.86rem; font-weight:600;
+  text-decoration:none; cursor:pointer;
+  transition:transform .2s var(--ease), background .2s ease, box-shadow .2s ease;
+  box-shadow:0 4px 12px rgba(22,22,26,.15);
+}
+.platform-btn:hover { transform:translateY(-2px); background:#000; box-shadow:0 8px 24px rgba(22,22,26,.22); }
+.platform-btn svg { width:15px; height:15px; stroke:currentColor; stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; transition:transform .25s var(--ease); }
+.platform-btn:hover svg { transform:translateY(2px); }
+.platform-meta { margin-top:12px; font-size:.72rem; color:var(--ink-muted); text-align:center; letter-spacing:.02em; }
+
+.platform-badge {
+  position:absolute; top:20px; right:20px;
+  background:var(--accent); color:#fff;
+  font-size:.62rem; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+  padding:4px 9px; border-radius:999px;
+  box-shadow:0 4px 12px rgba(47,95,255,.3);
+}
+
+.qr-section {
+  display:grid; grid-template-columns:auto 1fr; gap:56px; align-items:center;
+  background:#ffffff;
+  border:1px solid var(--line); border-radius:24px; padding:48px;
+  position:relative; overflow:hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  animation:qrIn .8s .6s var(--ease-spring) both;
+}
+@keyframes qrIn {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.qr-section::before {
+  content:''; position:absolute; top:-30%; right:-10%; width:400px; height:400px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(47,95,255,.08) 0%, transparent 65%);
+  pointer-events:none;
+}
+
+.qr-frame {
+  position:relative; width:240px; height:240px;
+  background:#fff; border-radius:20px; padding:20px;
+  box-shadow:0 12px 40px rgba(22,22,26,.10), 0 30px 80px rgba(47,95,255,.08);
+  border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+}
+.qr-frame canvas { display:block; border-radius:8px; animation:qrReveal .9s .9s var(--ease-spring) both; }
+@keyframes qrReveal {
+  from { opacity:0; transform:scale(.85); filter:blur(4px); }
+  to   { opacity:1; transform:scale(1); filter:blur(0); }
+}
+.qr-frame::before, .qr-frame::after {
+  content:''; position:absolute; width:22px; height:22px;
+  border:3px solid var(--accent); border-radius:6px;
+}
+.qr-frame::before { top:-6px; left:-6px; border-right:0; border-bottom:0; }
+.qr-frame::after { bottom:-6px; right:-6px; border-left:0; border-top:0; }
+
+.qr-text { position:relative; z-index:1; }
+.qr-text .eyebrow { font-size:.7rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
+.qr-text h2 { font-size:clamp(1.4rem, 2.4vw, 1.9rem); font-weight:800; letter-spacing:-.035em; line-height:1.15; margin-bottom:14px; color:var(--ink); }
+.qr-text h2 em { font-style:normal; color:var(--accent); }
+.qr-text p { font-size:.98rem; color:var(--ink-soft); line-height:1.65; margin-bottom:22px; max-width:420px; }
+
+.qr-steps { display:flex; flex-wrap:wrap; gap:14px; }
+.qr-step {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px 10px 10px;
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px;
+  font-size:.82rem; font-weight:500; color:var(--ink);
+}
+.qr-step .num {
+  width:22px; height:22px; border-radius:50%;
+  background:var(--accent); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.72rem; font-weight:700; flex-shrink:0;
+}
+
+/* ═════════ VUE 4 — À PROPOS ═════════ */
+#view-about {
+  position:absolute; inset:0;
+  opacity:0; pointer-events:none;
+  transition:opacity .4s var(--ease);
+  background:transparent;
+  overflow-y:auto; overflow-x:hidden;
+}
+#view-about.show { opacity:1; pointer-events:auto; }
+
+.about-wrap { max-width:1000px; margin:0 auto; padding:64px 32px 0; }
+
+.about-hero { text-align:center; margin-bottom:80px; animation:heroIn .8s var(--ease) both; }
+.about-eyebrow {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.25);
+  color:#ffffff;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  padding:7px 16px 7px 12px;
+  border-radius:999px;
+  font-size:.72rem; font-weight:700;
+  letter-spacing:.13em; text-transform:uppercase;
+  margin-bottom:24px;
+}
+.about-eyebrow .dot {
+  width:6px; height:6px; border-radius:50%;
+  background:var(--accent-light);
+  box-shadow:0 0 0 3px rgba(122,155,255,.3);
+  animation:blink 1.8s ease-in-out infinite;
+}
+.about-hero h1 {
+  font-size:clamp(2rem, 4.5vw, 3.2rem);
+  font-weight:800; letter-spacing:-.045em;
+  line-height:1.08; color:#ffffff;
+  margin-bottom:24px; max-width:820px;
+  margin-left:auto; margin-right:auto;
+  text-shadow: 0 6px 30px rgba(0,0,0,.55), 0 2px 10px rgba(0,0,0,.4);
+}
+.about-hero h1 em { font-style:normal; color:var(--accent-light); }
+.about-hero p { font-size:clamp(.95rem, 1.4vw, 1.08rem); color:rgba(255,255,255,.85); max-width:620px; margin:0 auto; line-height:1.7; text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+
+.about-mission { margin-bottom:72px; }
+.mission-card {
+  background:#ffffff;
+  border:1px solid var(--line); border-radius:24px;
+  padding:48px 44px; text-align:center;
+  position:relative; overflow:hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  animation:qrIn .8s .2s var(--ease-spring) both;
+}
+.mission-card::before {
+  content:''; position:absolute; top:-40%; right:-15%; width:400px; height:400px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(47,95,255,.06) 0%, transparent 65%);
+  pointer-events:none;
+}
+.mission-icon {
+  width:56px; height:56px; border-radius:16px;
+  background:var(--accent-soft);
+  display:inline-flex; align-items:center; justify-content:center;
+  margin-bottom:20px; position:relative; z-index:1;
+}
+.mission-icon svg { width:26px; height:26px; color:var(--accent); stroke:var(--accent); }
+.mission-card h2 {
+  font-size:clamp(1.4rem, 2.4vw, 1.8rem);
+  font-weight:800; letter-spacing:-.03em;
+  margin-bottom:14px; color:var(--ink);
+  position:relative; z-index:1;
+}
+.mission-card p {
+  font-size:1rem; color:var(--ink-soft);
+  line-height:1.7; max-width:640px; margin:0 auto;
+  position:relative; z-index:1;
+}
+
+.about-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:80px; }
+.stat-card {
+  background:#ffffff; border:1px solid var(--line);
+  border-radius:18px; padding:28px 22px; text-align:center;
+  transition:transform .3s var(--ease-spring), box-shadow .3s var(--ease), border-color .3s ease;
+  opacity:0; transform:translateY(20px);
+  box-shadow: 0 8px 30px rgba(0,0,0,.2);
+}
+#view-about.show .stat-card { animation:statIn .6s var(--ease-spring) forwards; }
+#view-about.show .stat-card:nth-child(1) { animation-delay:.25s; }
+#view-about.show .stat-card:nth-child(2) { animation-delay:.35s; }
+#view-about.show .stat-card:nth-child(3) { animation-delay:.45s; }
+#view-about.show .stat-card:nth-child(4) { animation-delay:.55s; }
+@keyframes statIn { to { opacity:1; transform:translateY(0); } }
+.stat-card:hover { transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,.3); border-color:var(--line-strong); }
+.stat-value { font-size:clamp(1.8rem, 3vw, 2.4rem); font-weight:800; letter-spacing:-.04em; color:var(--accent); line-height:1; margin-bottom:8px; }
+.stat-label { font-size:.86rem; font-weight:600; color:var(--ink); margin-bottom:4px; letter-spacing:-.01em; }
+.stat-meta { font-size:.72rem; color:var(--ink-muted); }
+
+.about-values { margin-bottom:80px; }
+.values-head { text-align:center; margin-bottom:44px; }
+.values-head h2 { font-size:clamp(1.6rem, 2.8vw, 2.2rem); font-weight:800; letter-spacing:-.035em; color:#ffffff; text-shadow: 0 4px 20px rgba(0,0,0,.5); }
+
+.values-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
+.value-card {
+  background:#ffffff; border:1px solid var(--line);
+  border-radius:18px; padding:28px 26px;
+  transition:transform .3s var(--ease-spring), box-shadow .3s var(--ease), border-color .3s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,.2);
+}
+.value-card:hover { transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,.3); border-color:var(--line-strong); }
+.value-icon {
+  width:44px; height:44px; border-radius:12px;
+  background:var(--accent-soft);
+  display:flex; align-items:center; justify-content:center;
+  margin-bottom:18px;
+  transition:transform .3s var(--ease-spring), background .3s ease;
+}
+.value-card:hover .value-icon { transform:scale(1.08) rotate(-4deg); background:var(--accent); }
+.value-icon svg { width:20px; height:20px; color:var(--accent); stroke:var(--accent); transition:stroke .3s ease; }
+.value-card:hover .value-icon svg { stroke:#fff; }
+.value-card h3 { font-size:1.05rem; font-weight:700; letter-spacing:-.02em; color:var(--ink); margin-bottom:8px; }
+.value-card p { font-size:.88rem; color:var(--ink-soft); line-height:1.65; }
+
+.about-contact { margin-bottom:80px; }
+.contact-head { text-align:center; margin-bottom:44px; }
+.contact-head h2 { font-size:clamp(1.6rem, 2.8vw, 2.2rem); font-weight:800; letter-spacing:-.035em; color:#ffffff; margin-bottom:12px; text-shadow: 0 4px 20px rgba(0,0,0,.5); }
+.contact-head p { font-size:.95rem; color:rgba(255,255,255,.85); max-width:480px; margin:0 auto; line-height:1.6; text-shadow: 0 2px 14px rgba(0,0,0,.5); }
+
+.contact-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; }
+.contact-card {
+  background:#ffffff; border:1px solid var(--line);
+  border-radius:16px; padding:24px 20px; text-align:center;
+  text-decoration:none; color:inherit;
+  transition:transform .3s var(--ease-spring), box-shadow .3s var(--ease), border-color .3s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,.2);
+}
+.contact-card:hover { transform:translateY(-3px); box-shadow:0 16px 40px rgba(0,0,0,.3); border-color:var(--line-strong); }
+.contact-icon { width:40px; height:40px; margin:0 auto 14px; border-radius:11px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center; }
+.contact-icon svg { width:18px; height:18px; color:var(--accent); stroke:var(--accent); }
+.contact-label { font-size:.68rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+.contact-value { font-size:.86rem; font-weight:600; color:var(--ink); letter-spacing:-.01em; word-break:break-word; }
+
+.about-footer { border-top:1px solid rgba(255,255,255,.15); margin-top:0; padding:48px 0 40px; text-align:center; }
+.footer-brand { display:inline-flex; align-items:center; gap:10px; margin-bottom:16px; }
+.footer-mark { width:28px; height:28px; border-radius:8px; background:#ffffff; position:relative; }
+.footer-mark::before, .footer-mark::after { content:""; position:absolute; border-radius:50%; background:var(--accent); }
+.footer-mark::before { inset:7px; }
+.footer-mark::after { inset:12px; background:#ffffff; }
+.footer-brand span { font-size:1rem; font-weight:700; letter-spacing:-.02em; color:#ffffff; }
+.footer-line { font-size:.86rem; color:rgba(255,255,255,.75); margin-bottom:18px; }
+.footer-links { display:flex; justify-content:center; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.footer-links a { font-size:.8rem; color:rgba(255,255,255,.7); text-decoration:none; transition:color .2s ease; }
+.footer-links a:hover { color:var(--accent-light); }
+.footer-links span { color:rgba(255,255,255,.3); font-size:.7rem; }
+.footer-copy { font-size:.76rem; color:rgba(255,255,255,.55); letter-spacing:.02em; }
+
+/* ═════════ VUE 5 — AUTH ═════════ */
+#view-auth {
+  position:absolute; inset:0;
+  opacity:0; pointer-events:none;
+  transition:opacity .4s var(--ease);
+  background:transparent;
+  overflow-y:auto;
+  display:flex; align-items:center; justify-content:center;
+  padding:40px 24px;
+}
+#view-auth.show { opacity:1; pointer-events:auto; }
+
+.auth-card {
+  width:100%; max-width:440px;
+  background:#ffffff;
+  border:1px solid var(--line);
+  border-radius:24px;
+  padding:44px 40px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.4);
+  animation:authIn .6s var(--ease-spring) both;
+  position:relative;
+}
+@keyframes authIn {
+  from { opacity:0; transform:translateY(20px) scale(.98); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.auth-logo { display:flex; flex-direction:column; align-items:center; gap:14px; margin-bottom:32px; }
+.auth-logo-mark {
+  width:56px; height:56px; border-radius:16px;
+  background:var(--ink); position:relative;
+  box-shadow:0 8px 24px rgba(22,22,26,.15);
+}
+.auth-logo-mark::before, .auth-logo-mark::after { content:""; position:absolute; border-radius:50%; background:var(--accent); }
+.auth-logo-mark::before { inset:16px; }
+.auth-logo-mark::after { inset:25px; background:#fff; }
+.auth-logo-name { font-size:1.1rem; font-weight:700; letter-spacing:-.03em; color:var(--ink); }
+
+.auth-title { font-size:1.6rem; font-weight:800; letter-spacing:-.035em; color:var(--ink); text-align:center; margin-bottom:8px; line-height:1.15; }
+.auth-subtitle { font-size:.9rem; color:var(--ink-soft); text-align:center; margin-bottom:32px; line-height:1.5; }
+
+.auth-form { display:flex; flex-direction:column; gap:14px; }
+
+.auth-field {
+  display:flex; align-items:center; gap:12px;
+  padding:4px 16px;
+  background:var(--bg-soft);
+  border:1.5px solid transparent;
+  border-radius:12px;
+  transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.auth-field:focus-within {
+  border-color:var(--accent);
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(47,95,255,.10);
+}
+.auth-field svg {
+  flex-shrink:0; width:18px; height:18px;
+  color:var(--ink-muted);
+  stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;
+  transition:color .2s ease;
+}
+.auth-field:focus-within svg { color:var(--accent); }
+.auth-field input {
+  flex:1; min-width:0; border:0; outline:0; background:transparent;
+  color:var(--ink); font:500 .92rem 'Inter', sans-serif; padding:14px 0;
+}
+.auth-field input::placeholder { color:var(--ink-muted); }
+
+.auth-btn {
+  border:0; border-radius:12px; padding:15px 20px;
+  background:var(--accent); color:#fff;
+  font:600 .92rem 'Inter', sans-serif;
+  cursor:pointer;
+  transition:transform .2s var(--ease), background .2s ease, box-shadow .2s ease;
+  margin-top:8px;
+  box-shadow:0 6px 20px rgba(47,95,255,.25);
+}
+.auth-btn:hover { transform:translateY(-1px); background:var(--accent-ink); box-shadow:0 8px 24px rgba(47,95,255,.35); }
+.auth-btn:active { transform:translateY(0); }
+
+.auth-switch { text-align:center; font-size:.86rem; color:var(--ink-soft); margin-top:24px; }
+.auth-switch a { color:var(--accent); font-weight:600; text-decoration:none; cursor:pointer; transition:color .2s ease; }
+.auth-switch a:hover { color:var(--accent-ink); text-decoration:underline; }
+
+.auth-error { color:var(--danger); font-size:.82rem; text-align:center; margin-top:12px; min-height:1.2em; font-weight:500; }
+
+.auth-legal { font-size:.72rem; color:var(--ink-muted); text-align:center; margin-top:20px; line-height:1.6; }
+.auth-legal a { color:var(--ink-soft); text-decoration:none; }
+.auth-legal a:hover { color:var(--accent); }
+
+/* ═════════ RESPONSIVE ═════════ */
+
+@media (max-width:900px) {
+  .platforms { grid-template-columns:1fr; gap:14px; }
+  .qr-section { grid-template-columns:1fr; gap:36px; padding:36px 28px; text-align:center; }
+  .qr-frame { margin:0 auto; }
+  .qr-steps { justify-content:center; }
+  .about-stats { grid-template-columns:1fr 1fr; gap:12px; margin-bottom:56px; }
+  .stat-card { padding:22px 16px; }
+  .values-grid { grid-template-columns:1fr; }
+  .contact-grid { grid-template-columns:1fr 1fr; }
+  .about-values, .about-contact { margin-bottom:56px; }
+}
+
+@media (max-width:800px) {
+  header { padding:12px 20px; }
+  nav { display:none; }
+  .header-action { display:none; }
+  .menu-btn { display:flex; }
+
+  .stage { padding-bottom:130px; }
+  .hero-rotator { height: 340px; }
+  .hero-slide h1 { font-size: clamp(2rem, 8vw, 3rem); }
+  .hero-slide p { font-size: 1rem; max-width: 92%; }
+  .hero-slide { gap:20px; padding: 0 24px; }
+
+  .search-dock { padding:12px 20px 24px; }
+  .search-bar { padding:5px 5px 5px 18px; border-radius:24px; }
+  .search-bar input { font-size:.9rem; padding:11px 0; }
+  .search-send { width:36px; height:36px; }
+
+  .decision-box { bottom: 100px; width: min(500px, 94vw); }
+
+  .pause-btn { top:12px; right:16px; width:36px; height:36px; }
+  .pause-btn svg { width:14px; height:14px; }
+
+  .sidebar { left:12px; right:12px; top:12px; bottom:12px; width:auto; max-height:none; }
+  .sidebar-foot .search-send { width:32px; height:32px; }
+
+  .about-wrap { padding:40px 20px 0; }
+  .about-hero { margin-bottom:56px; }
+  .mission-card { padding:36px 26px; }
+  .about-footer { padding:36px 0 32px; }
+  .auth-card { padding:32px 24px; }
+}
+
+@media (max-width:600px) {
+  .download-wrap { padding:40px 20px 80px; }
+  .platform-card { padding:26px 22px 24px; }
+  .qr-frame { width:200px; height:200px; padding:16px; }
+  .qr-frame canvas { width:168px !important; height:168px !important; }
+  .qr-section { padding:28px 20px; }
+
+  .hero-rotator { height: 300px; }
+  .hero-slide h1 { font-size: clamp(1.75rem, 9vw, 2.5rem); }
+  .hero-slide p { font-size: .92rem; }
+
+  .decision-box { bottom: 92px; }
+  .decision-top { padding: 16px 18px 12px; gap:12px; }
+  .decision-avatar { width:36px; height:36px; border-radius:10px; }
+  .decision-avatar svg { width:18px; height:18px; }
+  .decision-question { font-size:.95rem; }
+  .decision-options { padding:12px 14px 16px; gap:6px; }
+  .decision-option { padding:13px 16px; font-size:.88rem; }
+}
+
+@media (max-width:500px) {
+  .contact-grid { grid-template-columns:1fr; }
+  .about-stats { grid-template-columns:1fr; }
+  .about-wrap { padding:32px 16px 0; }
+
+  .hero-rotator { height: 270px; }
+  .hero-slide h1 { font-size: clamp(1.6rem, 10vw, 2.1rem); }
+  .hero-slide p { font-size: .86rem; }
+
+  .sidebar { left:8px; right:8px; top:8px; bottom:8px; border-radius:16px; }
+  .sidebar-head { padding:18px 18px 14px; }
+  .sidebar-title { font-size:1.02rem; }
+
+  .auth-card { padding:28px 20px; border-radius:20px; }
+  .auth-title { font-size:1.35rem; }
+
+  .decision-box { width: calc(100vw - 20px); bottom: 86px; }
+
+  .detail-title { font-size: 1.05rem; }
+  .detail-icon { width:48px; height:48px; }
+  .detail-icon svg { width:22px; height:22px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" id="brandHome">
+    <div class="brand-mark"></div>
+    <span class="brand-name">Connectéo</span>
+  </a>
+  <nav id="mainNav">
+    <a data-view="home" class="active">Accueil</a>
+    <a data-view="download">Télécharger</a>
+    <a data-view="about">À propos</a>
+  </nav>
+  <button class="header-action" id="headerLoginBtn">Se connecter</button>
+  <button class="menu-btn" id="menuBtn" aria-label="Menu">
+    <svg class="icon-burger" viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    <svg class="icon-close" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</header>
+
+<div class="menu-backdrop" id="menuBackdrop"></div>
+<aside class="mobile-menu" id="mobileMenu">
+  <a data-view="home" class="active">Accueil</a>
+  <a data-view="download">Télécharger</a>
+  <a data-view="about">À propos</a>
+  <button class="menu-cta" id="mobileLoginBtn">Se connecter</button>
+</aside>
+
+<main>
+
+  <!-- ═════════ VUE 1 : ACCUEIL ═════════ -->
+  <div id="view-home">
+    <div class="stage">
+      <button class="pause-btn" id="pauseBtn" aria-label="Pause">
+        <svg class="icon-pause" viewBox="0 0 24 24">
+          <rect x="6" y="4" width="4" height="16" rx="1"/>
+          <rect x="14" y="4" width="4" height="16" rx="1"/>
+        </svg>
+        <svg class="icon-play" viewBox="0 0 24 24">
+          <polygon points="6 4 20 12 6 20 6 4"/>
+        </svg>
+      </button>
+
+      <div class="hero-rotator" id="heroRotator">
+
+        <div class="hero-slide active" data-slide="0">
+          <h1>Posez votre <em>question</em></h1>
+          <p>L'assistant comprend votre intention, la reformule et vous oriente vers la bonne réponse — même quand vous ne connaissez pas le mot exact.</p>
+        </div>
+
+        <div class="hero-slide" data-slide="1">
+          <h1>Trouvez un <em>lieu</em></h1>
+          <p>Un village, une adresse, un marché. La carte fonctionne hors ligne et vous guide jusque dans les zones les plus isolées de Madagascar.</p>
+        </div>
+
+        <div class="hero-slide" data-slide="2">
+          <h1>Contactez les <em>secours</em></h1>
+          <p>Une urgence, un accident, un besoin d'aide ? Une alerte prioritaire part en moins de deux secondes vers vos proches et les secours, même en zone blanche.</p>
+        </div>
+
+        <div class="hero-slide" data-slide="3">
+          <h1>Restez <em>connecté</em></h1>
+          <p>Partout à Madagascar, même sans internet ni réseau mobile. Le réseau maillé décentralisé relie chaque village, un nœud à la fois, une famille à la fois.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════ VUE 2 : CARTE ═════════ -->
+  <div id="view-map">
+    <div id="map"></div>
+
+    <aside class="sidebar" id="sidebar">
+
+      <!-- Vue liste -->
+      <div class="sidebar-head" id="sidebarHead">
+        <h2 class="sidebar-title" id="sidebarTitle">Dentistes à proximité</h2>
+        <div class="sidebar-count" id="sidebarCount">15 lieux trouvés</div>
+      </div>
+      <div class="sidebar-list" id="sidebarList"></div>
+
+      <!-- Vue détail -->
+      <div class="sidebar-detail" id="sidebarDetail">
+        <div class="detail-top-bar">
+          <button class="detail-back" id="detailBack">
+            <svg viewBox="0 0 24 24">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Retour aux suggestions
+          </button>
+        </div>
+        <div class="detail-scroll" id="detailScroll"></div>
+      </div>
+
+      <div class="sidebar-foot">
+        <form class="search-bar" id="mapSearchForm">
+          <input type="text" id="mapSearchInput" placeholder="Posez votre question…" autocomplete="off">
+          <button type="submit" class="search-send" id="mapSendBtn" aria-label="Envoyer">
+            <svg viewBox="0 0 24 24">
+              <line x1="12" y1="19" x2="12" y2="5"></line>
+              <polyline points="5 12 12 5 19 12"></polyline>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ═════════ VUE 3 : TÉLÉCHARGER ═════════ -->
+  <div id="view-download">
+    <div class="download-wrap">
+
+      <section class="dl-hero">
+        <div class="dl-eyebrow">
+          <span class="dot"></span>
+          Version 2.4.1 · Disponible
+        </div>
+        <h1>Emportez Connectéo <em>partout avec vous.</em></h1>
+        <p>Fonctionne hors réseau, en zone blanche, partout à Madagascar. Choisissez votre plateforme et installez en quelques secondes.</p>
+      </section>
+
+      <section class="platforms">
+        <div class="platform-card" data-platform="android">
+          <div class="platform-badge">Recommandé</div>
+          <div class="platform-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.463 11.463 0 0 0-8.94 0L5.65 5.67c-.19-.29-.58-.38-.87-.2-.28.18-.37.54-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/>
+            </svg>
+          </div>
+          <div class="platform-name">Android</div>
+          <div class="platform-tag">Téléphone · Tablette</div>
+          <ul class="platform-details">
+            <li>Android 8.0 ou supérieur</li>
+            <li>Bluetooth Low Energy (BLE)</li>
+            <li>38 Mo d'espace libre</li>
+            <li>Compatible modules LoRa</li>
+          </ul>
+          <a href="#" class="platform-btn" download>
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Télécharger l'APK
+          </a>
+          <div class="platform-meta">v2.4.1 · 38 Mo · Gratuit</div>
+        </div>
+
+        <div class="platform-card" data-platform="ios">
+          <div class="platform-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+            </svg>
+          </div>
+          <div class="platform-name">iOS</div>
+          <div class="platform-tag">iPhone · iPad</div>
+          <ul class="platform-details">
+            <li>iOS 14 ou supérieur</li>
+            <li>Bluetooth Low Energy (BLE)</li>
+            <li>42 Mo d'espace libre</li>
+            <li>Compatible modules LoRa</li>
+          </ul>
+          <a href="#" class="platform-btn">
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Installer via TestFlight
+          </a>
+          <div class="platform-meta">v2.4.1 · 42 Mo · Bêta</div>
+        </div>
+
+        <div class="platform-card" data-platform="harmony">
+          <div class="platform-icon">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2c.8 1.4 1.4 3 1.6 4.6.2-1.6.8-3.2 1.6-4.6.5.9.8 2 .9 3 .5-.9 1.2-1.7 2-2.3-.6 1.3-.9 2.7-.9 4.2.3-.6.7-1.1 1.2-1.6-.1 1.4-.6 2.7-1.5 3.8.7-.3 1.4-.6 2.1-.7-.8.9-1.7 1.7-2.8 2.2.4.1.9.3 1.3.5-1.2.4-2.3 1-3.2 1.8.3.1.5.3.8.5-1.1-.1-2.2 0-3.3.4.1.2.3.5.4.7-1-.5-2.1-.7-3.2-.6.1.3.2.6.2.9-.8-.8-1.8-1.4-2.9-1.7.1.3.2.6.2 1-.6-.9-1.5-1.7-2.5-2.2.1.3.2.7.2 1-.4-1-1.1-1.9-1.9-2.6.1.4.1.7 0 1.1-.2-1.1-.6-2.1-1.1-3 .4.3.8.5 1.3.6-.5-.9-.8-1.9-.9-3 .6.6 1.3 1 2 1.4-.3-.9-.4-1.9-.3-2.9.7.7 1.5 1.2 2.4 1.5-.1-.9 0-1.9.3-2.8.7.8 1.5 1.3 2.4 1.6.1-.9.4-1.7.8-2.5.4.8.7 1.6.8 2.5.9-.3 1.7-.8 2.4-1.6.3.9.4 1.9.3 2.8.9-.3 1.7-.8 2.4-1.5z"/>
+              <circle cx="12" cy="13" r="2.5"/>
+            </svg>
+          </div>
+          <div class="platform-name">HarmonyOS</div>
+          <div class="platform-tag">Huawei · Honor</div>
+          <ul class="platform-details">
+            <li>HarmonyOS 3.0 ou supérieur</li>
+            <li>Bluetooth Low Energy (BLE)</li>
+            <li>40 Mo d'espace libre</li>
+            <li>Compatible modules LoRa</li>
+          </ul>
+          <a href="#" class="platform-btn" download>
+            <svg viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Télécharger le HAP
+          </a>
+          <div class="platform-meta">v2.4.1 · 40 Mo · Gratuit</div>
+        </div>
+      </section>
+
+      <section class="qr-section">
+        <div class="qr-frame">
+          <canvas id="qrcode"></canvas>
+        </div>
+        <div class="qr-text">
+          <div class="eyebrow">Installation rapide</div>
+          <h2>Un scan. <em>Trois plateformes.</em></h2>
+          <p>Notre QR détecte automatiquement votre téléphone et vous redirige vers la version adaptée. Sur iOS, vous serez guidé vers l'App Store.</p>
+          <div class="qr-steps">
+            <div class="qr-step"><span class="num">1</span>Scanner le code</div>
+            <div class="qr-step"><span class="num">2</span>Détection automatique</div>
+            <div class="qr-step"><span class="num">3</span>Téléchargement</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- ═════════ VUE 4 : À PROPOS ═════════ -->
+  <div id="view-about">
+    <div class="about-wrap">
+
+      <section class="about-hero">
+        <div class="about-eyebrow">
+          <span class="dot"></span>
+          Notre histoire
+        </div>
+        <h1>Connecter ceux que <em>le réseau oublie.</em></h1>
+        <p>Connectéo est né d'un constat simple : à Madagascar, des millions de personnes vivent dans des zones blanches, sans accès fiable à Internet ni au réseau mobile. Nous construisons l'infrastructure qui les relie.</p>
+      </section>
+
+      <section class="about-mission">
+        <div class="mission-card">
+          <div class="mission-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </div>
+          <h2>Notre mission</h2>
+          <p>Bâtir un réseau de communication résilient, décentralisé et accessible à tous les Malagasy — quel que soit leur lieu de vie, leur moyen ou leur situation.</p>
+        </div>
+      </section>
+
+      <section class="about-stats">
+        <div class="stat-card">
+          <div class="stat-value">142</div>
+          <div class="stat-label">Nœuds actifs</div>
+          <div class="stat-meta">À travers Madagascar</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">1 847</div>
+          <div class="stat-label">Utilisateurs</div>
+          <div class="stat-meta">Depuis le lancement</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">78%</div>
+          <div class="stat-label">Couverture</div>
+          <div class="stat-meta">Des zones ciblées</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">14</div>
+          <div class="stat-label">Zones blanches</div>
+          <div class="stat-meta">En cours de connexion</div>
+        </div>
+      </section>
+
+      <section class="about-values">
+        <div class="values-head">
+          <h2>Ce qui nous guide</h2>
+        </div>
+
+        <div class="values-grid">
+          <div class="value-card">
+            <div class="value-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a7 7 0 0 0-7 7c0 3 2 5.5 3.5 7.5S11 21 12 22c1-1 2-3.5 3.5-5.5S19 12 19 9a7 7 0 0 0-7-7z"/>
+              </svg>
+            </div>
+            <h3>Accessibilité</h3>
+            <p>Chaque personne, quel que soit son âge, son niveau d'alphabétisation ou son handicap, doit pouvoir utiliser Connectéo.</p>
+          </div>
+          <div class="value-card">
+            <div class="value-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="2"/>
+                <circle cx="4" cy="6" r="1.5"/>
+                <circle cx="20" cy="6" r="1.5"/>
+                <circle cx="4" cy="18" r="1.5"/>
+                <circle cx="20" cy="18" r="1.5"/>
+                <line x1="5.5" y1="7" x2="10.5" y2="11"/>
+                <line x1="18.5" y1="7" x2="13.5" y2="11"/>
+                <line x1="5.5" y1="17" x2="10.5" y2="13"/>
+                <line x1="18.5" y1="17" x2="13.5" y2="13"/>
+              </svg>
+            </div>
+            <h3>Décentralisation</h3>
+            <p>Le réseau n'appartient à personne et appartient à tous. Il fonctionne sans serveur central, sans point unique de défaillance.</p>
+          </div>
+          <div class="value-card">
+            <div class="value-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+            </div>
+            <h3>Résilience</h3>
+            <p>Cyclones, pannes, coupures — Connectéo continue de fonctionner quand tout le reste s'arrête.</p>
+          </div>
+          <div class="value-card">
+            <div class="value-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <h3>Communauté</h3>
+            <p>Chaque utilisateur est un relais. Plus nous sommes nombreux, plus le réseau est puissant et étendu.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-contact">
+        <div class="contact-head">
+          <h2>Parlons-en.</h2>
+          <p>Une question, un projet, un partenariat ? Notre équipe vous répond sous 48 heures.</p>
+        </div>
+
+        <div class="contact-grid">
+          <a href="mailto:contact@connecteo.mg" class="contact-card">
+            <div class="contact-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                <path d="m22 6-10 7L2 6"/>
+              </svg>
+            </div>
+            <div class="contact-label">Email</div>
+            <div class="contact-value">contact@connecteo.mg</div>
+          </a>
+          <a href="tel:+261340000000" class="contact-card">
+            <div class="contact-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2.1z"/>
+              </svg>
+            </div>
+            <div class="contact-label">Téléphone</div>
+            <div class="contact-value">+261 34 00 000 00</div>
+          </a>
+          <a href="#" class="contact-card">
+            <div class="contact-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div class="contact-label">Adresse</div>
+            <div class="contact-value">Antananarivo, Madagascar</div>
+          </a>
+          <a href="#" class="contact-card">
+            <div class="contact-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <div class="contact-label">Site web</div>
+            <div class="contact-value">www.connecteo.mg</div>
+          </a>
+        </div>
+      </section>
+
+      <footer class="about-footer">
+        <div class="footer-brand">
+          <div class="footer-mark"></div>
+          <span>Connectéo</span>
+        </div>
+        <p class="footer-line">
+          Réseau maillé décentralisé pour Madagascar · Fait avec soin à Antananarivo
+        </p>
+        <div class="footer-links">
+          <a href="#">Mentions légales</a>
+          <span>·</span>
+          <a href="#">Politique de confidentialité</a>
+          <span>·</span>
+          <a href="#">Contact</a>
+        </div>
+        <div class="footer-copy">
+          © 2026 Connectéo — Tous droits réservés.
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- ═════════ VUE 5 : AUTH ═════════ -->
+  <div id="view-auth">
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        <div class="auth-logo-mark"></div>
+        <div class="auth-logo-name">Connectéo</div>
+      </div>
+
+      <h2 class="auth-title" id="authTitle">Bon retour.</h2>
+      <p class="auth-subtitle" id="authSubtitle">Connectez-vous pour accéder à votre espace.</p>
+
+      <form class="auth-form" id="authForm" onsubmit="event.preventDefault(); handleAuth();">
+        <label class="auth-field">
+          <svg viewBox="0 0 24 24">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="m22 6-10 7L2 6"/>
+          </svg>
+          <input type="email" id="authEmail" placeholder="Adresse email" required autocomplete="email">
+        </label>
+
+        <label class="auth-field">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          <input type="password" id="authPassword" placeholder="Mot de passe" required autocomplete="current-password">
+        </label>
+
+        <label class="auth-field" id="authConfirmWrap" style="display:none">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0110 0v4"/>
+            <path d="M9 16l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <input type="password" id="authConfirm" placeholder="Confirmer le mot de passe" autocomplete="new-password">
+        </label>
+
+        <button type="submit" class="auth-btn" id="authBtn">Se connecter</button>
+      </form>
+
+      <div class="auth-error" id="authError"></div>
+
+      <p class="auth-switch" id="authSwitch">
+        Pas encore de compte ?
+        <a id="authSwitchLink">Créer un compte</a>
+      </p>
+
+      <p class="auth-legal" id="authLegal">
+        En continuant, vous acceptez nos <a href="#">conditions d'utilisation</a> et notre <a href="#">politique de confidentialité</a>.
+      </p>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- BARRE DE RECHERCHE ACCUEIL -->
+<div class="search-dock">
+  <div class="search-wrap">
+    <form class="search-bar" id="searchForm">
+      <input type="text" id="searchInput" placeholder="Comment pouvons-nous vous aider ?" autocomplete="off">
+      <button type="submit" class="search-send" id="sendBtn" aria-label="Envoyer">
+        <svg viewBox="0 0 24 24">
+          <line x1="12" y1="19" x2="12" y2="5"></line>
+          <polyline points="5 12 12 5 19 12"></polyline>
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- BOÎTE À OPTIONS -->
+<div class="decision-box" id="decisionBox" aria-hidden="true">
+  <div class="decision-top">
+    <div class="decision-avatar">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+      </svg>
+    </div>
+    <div class="decision-meta">
+      <div class="decision-label">Assistant Connectéo</div>
+      <div class="decision-question" id="decisionQuestion">Que cherchez-vous ?</div>
+    </div>
+    <button class="decision-close" id="decisionClose" aria-label="Fermer">
+      <svg viewBox="0 0 24 24">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="decision-options" id="decisionOptions"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// MENU MOBILE
+// ═══════════════════════════════════════════════
+const menuBtn = document.getElementById('menuBtn');
+const mobileMenu = document.getElementById('mobileMenu');
+const menuBackdrop = document.getElementById('menuBackdrop');
+const mobileLoginBtn = document.getElementById('mobileLoginBtn');
+const mobileLinks = mobileMenu.querySelectorAll('a[data-view]');
+
+function openMenu() {
+  mobileMenu.classList.add('open');
+  menuBackdrop.classList.add('show');
+  menuBtn.classList.add('open');
+}
+function closeMenu() {
+  mobileMenu.classList.remove('open');
+  menuBackdrop.classList.remove('show');
+  menuBtn.classList.remove('open');
+}
+function toggleMenu() {
+  if (mobileMenu.classList.contains('open')) closeMenu();
+  else openMenu();
+}
+
+menuBtn.addEventListener('click', toggleMenu);
+menuBackdrop.addEventListener('click', closeMenu);
+
+mobileLinks.forEach(a => {
+  a.addEventListener('click', () => {
+    const v = a.dataset.view;
+    switchView(v);
+    closeMenu();
+  });
+});
+
+mobileLoginBtn.addEventListener('click', () => {
+  switchView('login');
+  closeMenu();
+});
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 800) closeMenu();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && mobileMenu.classList.contains('open')) closeMenu();
+});
+
+// ═══════════════════════════════════════════════
+// DONNÉES CARTE
+// ═══════════════════════════════════════════════
+const DATA = {
+  dentistes: [
+    { name:'Cabinet Dentaire Analakely', type:'dentiste', lat:-18.9075, lng:47.5250, dist:'2,3 km', open:true, addr:'Rue Rainibetsimisaraka, Analakely', hours:'Lun–Ven 8h–17h · Sam 8h–12h', desc:'Cabinet dentaire moderne équipé pour les soins courants et les urgences. Prend en charge adultes et enfants sur rendez-vous ou en visite libre selon disponibilité.' },
+    { name:'Clinique Dentaire Isoraka', type:'dentiste', lat:-18.8950, lng:47.5200, dist:'1,9 km', open:true, addr:'Avenue de l\'Indépendance, Isoraka', hours:'Lun–Sam 8h–18h', desc:'Clinique spécialisée en soins dentaires, orthodontie et implantologie. Équipe pluridisciplinaire.' },
+    { name:'Dr Rakoto Dentiste', type:'dentiste', lat:-18.8850, lng:47.5150, dist:'3,1 km', open:false, addr:'Lot II M 45, Ambohipo', hours:'Sur rendez-vous uniquement', desc:'Praticien libéral. Consultations sur rendez-vous. Urgences possibles en appelant directement.' },
+    { name:'Centre Dentaire Anosy', type:'dentiste', lat:-18.9200, lng:47.5400, dist:'2,8 km', open:true, addr:'Boulevard de l\'Europe, Anosy', hours:'Lun–Ven 8h–17h', desc:'Centre de soins dentaires avec plateau technique complet. Prise en charge pédiatrique.' },
+    { name:'Cabinet Andravoahangy', type:'dentiste', lat:-18.8750, lng:47.5350, dist:'4,2 km', open:true, addr:'Andravoahangy Nord', hours:'Lun–Ven 9h–17h', desc:'Cabinet de quartier. Soins conservateurs, extractions, prothèses.' },
+    { name:'Smile Dental Center', type:'dentiste', lat:-18.8950, lng:47.5050, dist:'1,2 km', open:true, addr:'Immeuble Tsaralalàna', hours:'Lun–Sam 8h–19h', desc:'Centre dentaire premium avec équipements de dernière génération.' },
+    { name:'Dr Rasoanaivo', type:'dentiste', lat:-18.9000, lng:47.5100, dist:'2,5 km', open:false, addr:'Rue Amiral Ramanana, Tsaralalàna', hours:'Sur rendez-vous', desc:'Praticien expérimenté, spécialisé en chirurgie dentaire.' },
+    { name:'Clinique Dentaire Ambohijatovo', type:'dentiste', lat:-18.9100, lng:47.5300, dist:'3,7 km', open:true, addr:'Ambohijatovo Avaratra', hours:'Lun–Ven 8h–17h', desc:'Clinique dentaire proposant consultations générales et spécialisées.' },
+    { name:'Cabinet Dentaire Ambohipo', type:'dentiste', lat:-18.8650, lng:47.5000, dist:'5,2 km', open:true, addr:'Ambohipo Avaratra', hours:'Lun–Sam 8h–18h', desc:'Cabinet familial. Soins courants, urgences et prévention.' },
+    { name:'Dentiste Analakely Centre', type:'dentiste', lat:-18.9080, lng:47.5260, dist:'2,1 km', open:true, addr:'Analakely, rue Andrianary', hours:'Lun–Ven 8h–17h', desc:'En plein cœur d\'Analakely. Accès facile, transport en commun à proximité.' },
+    { name:'Dr Rakotomalala', type:'dentiste', lat:-18.8880, lng:47.5120, dist:'3,4 km', open:false, addr:'Mahamasina Sud', hours:'Sur rendez-vous', desc:'Praticien libéral avec 15 ans d\'expérience en soins dentaires.' },
+    { name:'Clinique Stomatologique', type:'dentiste', lat:-18.9250, lng:47.5150, dist:'4,8 km', open:true, addr:'Ankadifotsy', hours:'Lun–Ven 8h–16h', desc:'Clinique spécialisée en stomatologie et chirurgie maxillo-faciale.' },
+    { name:'Cabinet Dr Randria', type:'dentiste', lat:-18.8920, lng:47.5290, dist:'2,9 km', open:true, addr:'Isoraka Est', hours:'Lun–Sam 8h–17h', desc:'Cabinet dentaire polyvalent. Soins, prévention et esthétique.' },
+    { name:'Centre Dentaire Itaosy', type:'dentiste', lat:-18.9300, lng:47.4850, dist:'6,1 km', open:true, addr:'Itaosy Centre', hours:'Lun–Ven 8h–16h', desc:'Centre de soins dentaires de proximité. Accessible en taxi-brousse.' },
+    { name:'Dentiste Mahamasina', type:'dentiste', lat:-18.9160, lng:47.5180, dist:'1,6 km', open:true, addr:'Mahamasina Nord', hours:'Lun–Sam 8h–18h', desc:'Cabinet dentaire situé près du stade Mahamasina. Bonne accessibilité.' }
+  ],
+  villes: [
+    { name:'Mahitsy', type:'ville', lat:-18.7500, lng:47.3500, dist:'22 km', open:true, addr:'Région Analamanga', hours:'Village · 24h/24', desc:'Chef-lieu de commune rural au nord-ouest d\'Antananarivo. Accessible par la RN4. Point de passage important.' },
+    { name:'Antananarivo', type:'ville', lat:-18.8792, lng:47.5079, dist:'0 km', open:true, addr:'Région Analamanga', hours:'Capitale · 24h/24', desc:'Capitale de Madagascar. Cœur économique et administratif du pays.' },
+    { name:'Ambohidratrimo', type:'ville', lat:-18.8200, lng:47.4300, dist:'14 km', open:true, addr:'Région Analamanga', hours:'Ville · 24h/24', desc:'Ville au nord-ouest de Tana. Connue pour son aéroport international.' },
+    { name:'Mahitsy Nord', type:'ville', lat:-18.7350, lng:47.3620, dist:'24 km', open:true, addr:'Région Analamanga', hours:'Village · 24h/24', desc:'Hameau au nord de Mahitsy. Zone agricole, culture de riz et maraîchage.' }
+  ],
+  marches: [
+    { name:'Marché Analakely', type:'marché', lat:-18.9070, lng:47.5240, dist:'1,8 km', open:true, addr:'Analakely, près de l\'avenue', hours:'Tous les jours 6h–18h', desc:'Le plus grand marché d\'Antananarivo. Fruits, légumes, épices, textile, produits artisanaux.' },
+    { name:'Marché Andravoahangy', type:'marché', lat:-18.8780, lng:47.5320, dist:'4,1 km', open:true, addr:'Andravoahangy', hours:'Tous les jours 6h–17h', desc:'Marché traditionnel réputé pour ses produits frais et ses prix abordables.' },
+    { name:'Marché Ambohipo', type:'marché', lat:-18.8680, lng:47.5030, dist:'4,7 km', open:true, addr:'Ambohipo', hours:'Tous les jours 6h–18h', desc:'Marché de quartier. Produits de première nécessité et produits locaux.' },
+    { name:'Marché Mahamasina', type:'marché', lat:-18.9150, lng:47.5190, dist:'1,5 km', open:true, addr:'Mahamasina', hours:'Tous les jours 6h–17h', desc:'Marché central situé près du stade. Spécialisé en produits frais et artisanat.' }
+  ],
+  pharmacies: [
+    { name:'Pharmacie Analakely', type:'pharmacie', lat:-18.9060, lng:47.5230, dist:'2,0 km', open:true, addr:'Analakely, avenue de l\'Indépendance', hours:'Lun–Sam 7h30–20h · Dim 8h–13h', desc:'Pharmacie centrale. Médicaments, parapharmacie, conseils santé. Service de garde possible.' },
+    { name:'Pharmacie Isoraka', type:'pharmacie', lat:-18.8960, lng:47.5210, dist:'2,2 km', open:true, addr:'Isoraka', hours:'Lun–Sam 8h–19h', desc:'Pharmacie de quartier. Large gamme de médicaments et produits de soin.' },
+    { name:'Pharmacie Anosy', type:'pharmacie', lat:-18.9190, lng:47.5390, dist:'2,9 km', open:false, addr:'Anosy, près du lac', hours:'Fermé actuellement · Réouvre 8h', desc:'Pharmacie du quartier Anosy. Service de nuit sur appel.' },
+    { name:'Pharmacie Ambohipo', type:'pharmacie', lat:-18.8660, lng:47.5020, dist:'5,0 km', open:true, addr:'Ambohipo', hours:'Lun–Sam 8h–18h', desc:'Pharmacie de proximité. Produits locaux et médicaments génériques.' },
+    { name:'Pharmacie Mahamasina', type:'pharmacie', lat:-18.9170, lng:47.5170, dist:'1,7 km', open:true, addr:'Mahamasina Sud', hours:'Lun–Sam 7h–20h · Dim 8h–12h', desc:'Pharmacie centrale. Urgences et gardes de nuit régulières.' }
+  ],
+  hopitaux: [
+    { name:'CHU Anosy', type:'hôpital', lat:-18.9210, lng:47.5410, dist:'3,0 km', open:true, addr:'Anosy, près du lac', hours:'Urgences 24h/24', desc:'Centre hospitalier universitaire. Services d\'urgence, chirurgie, médecine générale, pédiatrie.' },
+    { name:'Hôpital Joseph Ravoahangy', type:'hôpital', lat:-18.9140, lng:47.5170, dist:'2,1 km', open:true, addr:'Andoharanofotsy', hours:'Urgences 24h/24', desc:'Hôpital public de référence. Services médicaux complets et urgences permanentes.' },
+    { name:'Clinique Saint-Vincent', type:'hôpital', lat:-18.8880, lng:47.5150, dist:'3,5 km', open:true, addr:'Ambatonakanga', hours:'Urgences 24h/24', desc:'Clinique privée reconnue. Plateaux techniques modernes, chirurgie et maternité.' },
+    { name:'Hôpital Itaosy', type:'hôpital', lat:-18.9320, lng:47.4860, dist:'6,3 km', open:true, addr:'Itaosy', hours:'Urgences 24h/24', desc:'Hôpital de district. Consultations générales et urgences.' }
+  ]
+};
+
+const TITLES = {
+  dentistes: 'Dentistes à proximité',
+  villes: 'Villes correspondantes',
+  marches: 'Marchés locaux',
+  pharmacies: 'Pharmacies',
+  hopitaux: 'Hôpitaux'
+};
+
+// ═══════════════════════════════════════════════
+// FLUX DE DÉCISION
+// ═══════════════════════════════════════════════
+const FLOWS = {
+  sante: {
+    question: "D'accord. Que cherchez-vous exactement ?",
+    options: [
+      { label: 'Un dentiste',       filter: 'dentistes'  },
+      { label: 'Un hôpital',        filter: 'hopitaux'   },
+      { label: 'Une pharmacie',     filter: 'pharmacies' },
+      { label: "C'est une urgence", sos: true, danger: true }
+    ]
+  },
+  urgence: {
+    question: "Confirmer l'envoi d'une alerte prioritaire ?",
+    options: [
+      { label: 'Oui, envoyer', action: 'sos-send', success: true },
+      { label: 'Annuler',      action: 'close' }
+    ]
+  },
+  ressources: {
+    question: "Très bien. Que voulez-vous trouver ?",
+    options: [
+      { label: 'Les producteurs',  filter: 'marches' },
+      { label: 'Les marchés',      filter: 'marches' },
+      { label: 'Les coopératives', filter: 'marches' }
+    ]
+  },
+  lieu: {
+    question: "Vers où souhaitez-vous aller ?",
+    options: [
+      { label: 'Itaosy',            filter: 'villes' },
+      { label: 'Antananarivo',      filter: 'villes' },
+      { label: 'Mahitsy',           filter: 'villes' },
+      { label: 'Autre destination', filter: 'villes' }
+    ]
+  },
+  general: {
+    question: "Pouvez-vous préciser votre besoin ?",
+    options: [
+      { label: 'Un lieu',             next: 'lieu' },
+      { label: 'Une ressource',       next: 'ressources' },
+      { label: 'Un service de santé', next: 'sante' },
+      { label: 'Une urgence',         sos: true, danger: true }
+    ]
+  }
+};
+
+function detectFlow(query) {
+  const t = query.toLowerCase();
+  if (/(sos|urgence|secours|danger|accident|aide\b)/.test(t)) return 'urgence';
+  if (/(malade|mal\b|douleur|santé|sante|fièvre|fievre|dents|dent|tête|tete|ventre|dos|médecin|medecin|docteur|hôpital|hopital|pharmacie)/.test(t)) return 'sante';
+  if (/(cacao|vanille|riz|café|cafe|ressource|producteur|marché|marche|coopérative|cooperative)/.test(t)) return 'ressources';
+  if (/(village|aller|route|itinéraire|itineraire|chemin|où est|ou est|itaosy|antsirabe|toamasina|mahitsy)/.test(t)) return 'lieu';
+  return 'general';
+}
+
+// ═══════════════════════════════════════════════
+// BOÎTE À OPTIONS
+// ═══════════════════════════════════════════════
+const decisionBox = document.getElementById('decisionBox');
+const decisionQuestion = document.getElementById('decisionQuestion');
+const decisionOptions = document.getElementById('decisionOptions');
+const decisionClose = document.getElementById('decisionClose');
+
+function showDecision(flowKey) {
+  const flow = FLOWS[flowKey];
+  if (!flow) return;
+
+  decisionQuestion.textContent = flow.question;
+  decisionOptions.innerHTML = '';
+
+  flow.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'decision-option' + (opt.danger ? ' danger' : '') + (opt.success ? ' success' : '');
+    btn.style.animationDelay = (idx * 55) + 'ms';
+    btn.textContent = opt.label;
+    btn.addEventListener('click', () => handleOptionClick(opt));
+    decisionOptions.appendChild(btn);
+  });
+
+  decisionBox.classList.add('show');
+  decisionBox.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('decision-open');
+  stopSlidesAndHide();
+}
+
+function hideDecision() {
+  decisionBox.classList.remove('show');
+  decisionBox.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('decision-open');
+  restartSlides();
+}
+
+function handleOptionClick(opt) {
+  if (opt.filter) {
+    hideDecision();
+    setTimeout(() => {
+      switchView('map');
+      currentFilter = opt.filter;
+    }, 220);
+    return;
+  }
+  if (opt.next) { showDecision(opt.next); return; }
+  if (opt.sos)  { showDecision('urgence'); return; }
+  if (opt.action === 'close') { hideDecision(); return; }
+  if (opt.action === 'sos-send') {
+    decisionQuestion.textContent = "Alerte envoyée. Vos contacts ont été prévenus.";
+    decisionOptions.innerHTML = '';
+    setTimeout(() => hideDecision(), 1800);
+    return;
+  }
+}
+
+decisionClose.addEventListener('click', hideDecision);
+
+// ═══════════════════════════════════════════════
+// RECHERCHE
+// ═══════════════════════════════════════════════
+const searchForm = document.getElementById('searchForm');
+const searchInput = document.getElementById('searchInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function updateSendBtn() {
+  sendBtn.classList.toggle('enabled', searchInput.value.trim().length > 0);
+}
+
+searchInput.addEventListener('input', updateSendBtn);
+
+searchForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const q = searchInput.value.trim();
+  if (!q) return;
+  searchInput.value = '';
+  updateSendBtn();
+  searchInput.blur();
+  rechercherViaApi(q);
+});
+
+// ═══════════════════════════════════════════════
+// VAGUE PAR LETTRE
+// ═══════════════════════════════════════════════
+function splitIntoLetters(el) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  const textNodes = [];
+  let node;
+  while (node = walker.nextNode()) textNodes.push(node);
+
+  textNodes.forEach(textNode => {
+    const text = textNode.textContent;
+    if (!text.trim()) return;
+    const frag = document.createDocumentFragment();
+    [...text].forEach(char => {
+      const span = document.createElement('span');
+      span.className = 'letter';
+      if (char === ' ') {
+        span.classList.add('space');
+        span.innerHTML = '&nbsp;';
+      } else {
+        span.textContent = char;
+      }
+      frag.appendChild(span);
+    });
+    textNode.parentNode.replaceChild(frag, textNode);
+  });
+
+  const letters = el.querySelectorAll('.letter');
+  letters.forEach((letter, i) => {
+    letter.style.animationDelay = (i * 0.028) + 's';
+  });
+}
+
+document.querySelectorAll('.hero-slide h1').forEach(splitIntoLetters);
+
+// ═══════════════════════════════════════════════
+// HERO ROTATOR
+// ═══════════════════════════════════════════════
+const heroSlides = document.querySelectorAll('.hero-slide');
+
+const SLIDE_ENTER_DELAY = 300;
+const SLIDE_VISIBLE_TIME = 6000;
+const SLIDE_GAP = 700;
+
+let currentSlide = -1;
+let slidesActive = true;
+let cycleTimeout = null;
+
+function cycleSlides() {
+  if (!slidesActive) return;
+
+  heroSlides.forEach(s => s.classList.remove('active'));
+  currentSlide = (currentSlide + 1) % heroSlides.length;
+
+  cycleTimeout = setTimeout(() => {
+    if (!slidesActive) return;
+    heroSlides[currentSlide].classList.add('active');
+
+    cycleTimeout = setTimeout(() => {
+      if (!slidesActive) return;
+      heroSlides[currentSlide].classList.remove('active');
+      cycleTimeout = setTimeout(cycleSlides, SLIDE_GAP);
+    }, SLIDE_VISIBLE_TIME);
+  }, SLIDE_ENTER_DELAY);
+}
+
+function stopSlidesAndHide() {
+  slidesActive = false;
+  clearTimeout(cycleTimeout);
+  heroSlides.forEach(s => s.classList.remove('active'));
+}
+
+function restartSlides() {
+  if (isPaused) return;
+  if (currentView !== 'home') return;
+  slidesActive = true;
+  currentSlide = -1;
+  setTimeout(cycleSlides, 400);
+}
+
+setTimeout(cycleSlides, 1400);
+
+const pauseBtn = document.getElementById('pauseBtn');
+let isPaused = false;
+
+pauseBtn.addEventListener('click', () => {
+  isPaused = !isPaused;
+  pauseBtn.classList.toggle('paused', isPaused);
+  if (isPaused) stopSlidesAndHide();
+  else { slidesActive = true; currentSlide = -1; cycleSlides(); }
+});
+
+// ═══════════════════════════════════════════════
+// VUES
+// ═══════════════════════════════════════════════
+const viewHome = document.getElementById('view-home');
+const viewMap = document.getElementById('view-map');
+const viewDownload = document.getElementById('view-download');
+const viewAbout = document.getElementById('view-about');
+const viewAuth = document.getElementById('view-auth');
+const navLinks = document.querySelectorAll('#mainNav a');
+
+let currentView = 'home';
+let mapInitialized = false;
+let map = null;
+let markers = [];
+let currentFilter = 'dentistes';
+
+function switchView(name) {
+  currentView = name;
+
+  viewHome.classList.add('hidden');
+  viewMap.classList.remove('show');
+  viewDownload.classList.remove('show');
+  viewAbout.classList.remove('show');
+  viewAuth.classList.remove('show');
+  document.body.classList.remove('in-map', 'in-download', 'in-about', 'in-auth');
+
+  if (name !== 'home') hideDecision();
+
+  if (name === 'home') {
+    viewHome.classList.remove('hidden');
+    restartSlides();
+  } else if (name === 'map') {
+    viewMap.classList.add('show');
+    document.body.classList.add('in-map');
+    if (!mapInitialized) { initMap(); mapInitialized = true; }
+    setTimeout(() => {
+      if (map) map.invalidateSize();
+      renderSidebar(currentFilter);
+    }, 400);
+  } else if (name === 'download') {
+    viewDownload.classList.add('show');
+    document.body.classList.add('in-download');
+    animateDownloadCards();
+    initQR();
+  } else if (name === 'about') {
+    viewAbout.classList.add('show');
+    document.body.classList.add('in-about');
+  } else if (name === 'login' || name === 'signup') {
+    viewAuth.classList.add('show');
+    document.body.classList.add('in-auth');
+    setAuthMode(name);
+  }
+
+  // Retour à la liste quand on quitte la carte
+  if (name !== 'map') showSidebarList();
+
+  navLinks.forEach(a => a.classList.toggle('active', a.dataset.view === name));
+  mobileLinks.forEach(a => a.classList.toggle('active', a.dataset.view === name));
+
+  if (name !== 'home') stopSlidesAndHide();
+}
+
+navLinks.forEach(a => a.addEventListener('click', () => switchView(a.dataset.view)));
+document.getElementById('brandHome').addEventListener('click', () => switchView('home'));
+document.getElementById('headerLoginBtn').addEventListener('click', () => switchView('login'));
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+const authTitle = document.getElementById('authTitle');
+const authSubtitle = document.getElementById('authSubtitle');
+const authBtn = document.getElementById('authBtn');
+const authSwitch = document.getElementById('authSwitch');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authConfirm = document.getElementById('authConfirm');
+const authConfirmWrap = document.getElementById('authConfirmWrap');
+const authError = document.getElementById('authError');
+
+let authMode = 'login';
+
+function setAuthMode(mode) {
+  authMode = mode;
+  authError.textContent = '';
+
+  if (mode === 'login') {
+    authTitle.textContent = 'Bon retour.';
+    authSubtitle.textContent = 'Connectez-vous pour accéder à votre espace.';
+    authBtn.textContent = 'Se connecter';
+    authConfirmWrap.style.display = 'none';
+    authConfirm.removeAttribute('required');
+    authPassword.setAttribute('autocomplete', 'current-password');
+    authPassword.placeholder = 'Mot de passe';
+    authSwitch.innerHTML = 'Pas encore de compte ? <a id="authSwitchLink">Créer un compte</a>';
+  } else {
+    authTitle.textContent = 'Bienvenue.';
+    authSubtitle.textContent = 'Créez votre compte en quelques secondes.';
+    authBtn.textContent = 'Créer mon compte';
+    authConfirmWrap.style.display = 'flex';
+    authConfirm.setAttribute('required', '');
+    authPassword.setAttribute('autocomplete', 'new-password');
+    authPassword.placeholder = 'Créer un mot de passe';
+    authConfirm.placeholder = 'Confirmer le mot de passe';
+    authSwitch.innerHTML = 'Déjà un compte ? <a id="authSwitchLink">Se connecter</a>';
+  }
+
+  document.getElementById('authSwitchLink').addEventListener('click', () => {
+    setAuthMode(authMode === 'login' ? 'signup' : 'login');
+  });
+}
+
+function handleAuth() {
+  authError.textContent = '';
+  const email = authEmail.value.trim();
+  const pwd = authPassword.value;
+  const confirm = authConfirm.value;
+
+  if (!email || !email.includes('@') || !email.includes('.')) {
+    authError.textContent = 'Adresse email invalide.';
+    return;
+  }
+  if (pwd.length < 6) {
+    authError.textContent = 'Le mot de passe doit contenir au moins 6 caractères.';
+    return;
+  }
+
+  if (authMode === 'signup') {
+    if (pwd !== confirm) {
+      authError.textContent = 'Les mots de passe ne correspondent pas.';
+      return;
+    }
+    authBtn.textContent = 'Création du compte…';
+    authBtn.disabled = true;
+    setTimeout(() => {
+      authBtn.textContent = 'Créer mon compte';
+      authBtn.disabled = false;
+      document.getElementById('authForm').reset();
+      switchView('home');
+    }, 900);
+  } else {
+    authBtn.textContent = 'Connexion…';
+    authBtn.disabled = true;
+    setTimeout(() => {
+      authBtn.textContent = 'Se connecter';
+      authBtn.disabled = false;
+      document.getElementById('authForm').reset();
+      switchView('home');
+    }, 800);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// MAP — Vue satellite
+// ═══════════════════════════════════════════════
+function initMap() {
+  map = L.map('map', { zoomControl:false, attributionControl:true }).setView([-18.8792, 47.5079], 12);
+  L.control.zoom({ position:'bottomright' }).addTo(map);
+
+  // Fond satellite Esri World Imagery
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Labels et routes par-dessus pour la lisibilité
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    opacity: 0.85,
+    pane: 'overlayPane'
+  }).addTo(map);
+}
+
+function clearMarkers() {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+}
+
+function getIconSvg() {
+  return '<svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+}
+
+function renderSidebar(filter) {
+  currentFilter = filter;
+  const list = DATA[filter] || [];
+  const listEl = document.getElementById('sidebarList');
+  const titleEl = document.getElementById('sidebarTitle');
+  const countEl = document.getElementById('sidebarCount');
+
+  titleEl.textContent = TITLES[filter] || 'Résultats';
+  countEl.textContent = `${list.length} lieu${list.length > 1 ? 'x' : ''} trouvé${list.length > 1 ? 's' : ''}`;
+  if (!list.length) { map.setView([-18.9, 47.5], 6); }
+  listEl.innerHTML = '';
+
+  // On revient à la liste
+  showSidebarList();
+
+  list.forEach((place, idx) => {
+    const item = document.createElement('div');
+    item.className = 'result-item' + (idx === 0 ? ' active' : '');
+    item.dataset.idx = idx;
+    item.innerHTML = `
+      <div class="result-icon">${getIconSvg()}</div>
+      <div class="result-info">
+        <div class="result-name">${esc(place.name)}</div>
+        <div class="result-meta">
+          ${place.open === null || place.open === undefined
+            ? `<span class="result-distance">${esc(place.type)}</span>`
+            : `<span class="result-distance">${place.dist}</span>
+          <span class="result-status ${place.open ? '' : 'closed'}">${place.open ? 'Ouvert' : 'Fermé'}</span>`}
+        </div>
+      </div>
+    `;
+    item.addEventListener('click', () => selectPlace(idx));
+    listEl.appendChild(item);
+  });
+
+  clearMarkers();
+  list.forEach((place, idx) => {
+    const icon = L.divIcon({
+      html: `<div class="marker-pin" data-idx="${idx}">📍</div>`,
+      iconSize:[32, 32], iconAnchor:[16, 16], className:''
+    });
+    const marker = L.marker([place.lat, place.lng], { icon })
+      .addTo(map)
+      .bindPopup(`
+        <div class="popup-title">${esc(place.name)}</div>
+        <div class="popup-meta">${place.open === null || place.open === undefined ? esc(place.addr) : place.dist + ' de vous'}</div>
+        ${place.open === null || place.open === undefined ? '' : `<div class="popup-status ${place.open ? '' : 'closed'}">
+          ${place.open ? 'Ouvert maintenant' : 'Actuellement fermé'}
+        </div>`}
+      `);
+    marker.on('click', () => selectPlace(idx));
+    markers.push(marker);
+  });
+
+  if (markers.length > 0) {
+    const group = L.featureGroup(markers);
+    map.fitBounds(group.getBounds().pad(0.15));
+  }
+}
+
+function selectPlace(idx) {
+  const list = DATA[currentFilter];
+  const place = list[idx];
+
+  document.querySelectorAll('.result-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+
+  map.flyTo([place.lat, place.lng], 14, { duration:1.2, easeLinearity:0.25 });
+
+  setTimeout(() => {
+    const marker = markers[idx];
+    if (marker) marker.openPopup();
+    document.querySelectorAll('.marker-pin').forEach((p, i) => {
+      p.classList.toggle('active', i === idx);
+    });
+  }, 800);
+
+  // Affiche le détail dans la sidebar
+  showPlaceDetailInSidebar(place);
+}
+
+// ═══════════════════════════════════════════════
+// SIDEBAR — Vue détail lieu
+// ═══════════════════════════════════════════════
+const sidebarHead = document.getElementById('sidebarHead');
+const sidebarListEl = document.getElementById('sidebarList');
+const sidebarDetail = document.getElementById('sidebarDetail');
+const detailScroll = document.getElementById('detailScroll');
+const detailBack = document.getElementById('detailBack');
+
+function showPlaceDetailInSidebar(place) {
+  const api = place.open === null || place.open === undefined;
+  const statusClass = place.open ? '' : 'closed';
+  const statusLabel = place.open ? 'Ouvert maintenant' : 'Actuellement fermé';
+
+  detailScroll.innerHTML = `
+    <div class="detail-hero">
+      <div class="detail-icon">${getIconSvg()}</div>
+      <div class="detail-hero-info">
+        <div class="detail-tag">${esc(place.type)}</div>
+        <div class="detail-title">${esc(place.name)}</div>
+        ${api ? '' : `<div class="detail-distance">À <strong>${place.dist}</strong> de vous</div>`}
+      </div>
+    </div>
+
+    ${api ? '' : `<div class="detail-status ${statusClass}">${statusLabel}</div>`}
+
+    <div class="detail-section">
+      <div class="detail-section-title">Description</div>
+      <p>${esc(place.desc)}</p>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Informations</div>
+      <div class="detail-info-list">
+        <div class="detail-info-row">
+          <span class="label">${api ? 'Zone' : 'Adresse'}</span>
+          <span class="value">${esc(place.addr)}</span>
+        </div>
+        ${place.hours ? `<div class="detail-info-row"><span class="label">Horaires</span><span class="value">${esc(place.hours)}</span></div>` : ''}
+        ${place.precision ? `<div class="detail-info-row"><span class="label">Localisation</span><span class="value">${esc(place.precision)}</span></div>` : ''}
+        ${place.note ? `<div class="detail-info-row"><span class="label">Note Google</span><span class="value">${esc(place.note)}</span></div>` : ''}
+        <div class="detail-info-row">
+          <span class="label">Type</span>
+          <span class="value" style="text-transform:capitalize;">${esc(place.type)}</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="detail-action" id="detailRouteBtn">
+      <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      Y aller
+    </button>
+  `;
+
+  // Scroll en haut du détail
+  detailScroll.scrollTop = 0;
+
+  // Cache la liste, affiche le détail
+  sidebarHead.style.display = 'none';
+  sidebarListEl.style.display = 'none';
+  sidebarDetail.classList.add('show');
+
+  document.getElementById('detailRouteBtn').addEventListener('click', () => {
+    // Recentre sur le marqueur
+    const idx = DATA[currentFilter].findIndex(p => p.name === place.name);
+    if (idx >= 0 && markers[idx]) {
+      map.flyTo([place.lat, place.lng], 15, { duration:1 });
+      setTimeout(() => markers[idx].openPopup(), 800);
+    }
+  });
+}
+
+function showSidebarList() {
+  sidebarHead.style.display = '';
+  sidebarListEl.style.display = '';
+  sidebarDetail.classList.remove('show');
+}
+
+detailBack.addEventListener('click', showSidebarList);
+
+// ═══════════════════════════════════════════════
+// RECHERCHE CARTE (sidebar)
+// ═══════════════════════════════════════════════
+const mapForm = document.getElementById('mapSearchForm');
+const mapInput = document.getElementById('mapSearchInput');
+const mapSendBtn = document.getElementById('mapSendBtn');
+
+mapInput.addEventListener('input', () => {
+  mapSendBtn.classList.toggle('enabled', mapInput.value.trim().length > 0);
+});
+
+mapForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const q = mapInput.value.trim();
+  if (!q) return;
+  mapInput.value = '';
+  mapSendBtn.classList.remove('enabled');
+  rechercherViaApi(q);
+});
+
+// ═══════════════════════════════════════════════
+// CONNEXION À L'API (FastAPI : api.py)
+// ═══════════════════════════════════════════════
+const API_BASE = location.protocol.startsWith('http') ? '' : 'http://localhost:8000';
+let rechercheEnCours = null;      // id_resultat suivi
+let dernierIdResultat = null;     // pour /recherche/preciser
+
+function esc(t) {
+  return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function appelApi(chemin, corps) {
+  const reponse = await fetch(API_BASE + chemin, corps ? {
+    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(corps)
+  } : undefined);
+  if (!reponse.ok) throw new Error('Erreur ' + reponse.status);
+  return reponse.json();
+}
+
+function afficherMessageBoite(question, boutons) {
+  decisionQuestion.textContent = question;
+  decisionOptions.innerHTML = '';
+  (boutons || []).forEach((b, idx) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'decision-option' + (b.danger ? ' danger' : '');
+    btn.style.animationDelay = (idx * 55) + 'ms';
+    btn.textContent = b.label;
+    btn.addEventListener('click', b.onClick);
+    decisionOptions.appendChild(btn);
+  });
+  decisionBox.classList.add('show');
+  decisionBox.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('decision-open');
+  stopSlidesAndHide();
+}
+
+async function rechercherViaApi(texte) {
+  afficherMessageBoite('Recherche en cours…', []);
+  try {
+    const resultat = await appelApi('/recherche', { requete: texte });
+    await traiterResultat(resultat);
+  } catch (e) {
+    afficherMessageBoite("Le serveur ne répond pas. Vérifiez que « python demarrer.py » est lancé.",
+      [{ label: 'Fermer', onClick: hideDecision }]);
+  }
+}
+
+async function suivreResultat(id) {
+  rechercheEnCours = id;
+  for (let i = 0; i < 90 && rechercheEnCours === id; i++) {      // 3 minutes maximum
+    await new Promise(r => setTimeout(r, 2000));
+    const r = await appelApi('/resultats/' + encodeURIComponent(id));
+    if (r.statut !== 'en_cours') { await traiterResultat(r); return; }
+  }
+}
+
+async function traiterResultat(r) {
+  dernierIdResultat = r.id_resultat;
+
+  if (r.statut === 'en_cours') {
+    afficherMessageBoite('Recherche en cours…', []);
+    suivreResultat(r.id_resultat);
+    return;
+  }
+  rechercheEnCours = null;
+
+  if (r.statut === 'clarification_necessaire') { afficherClarification(r.clarification); return; }
+  if (r.statut === 'urgence') { afficherUrgence(r.urgence); return; }
+  if (r.statut === 'erreur') {
+    afficherMessageBoite("Une erreur est survenue pendant la recherche.", [{ label: 'Fermer', onClick: hideDecision }]);
+    return;
+  }
+
+  // statut = termine
+  hideDecision();
+  afficherLieuxSurLaCarte(r);
+}
+
+function afficherClarification(c) {
+  const question = c.question || 'Pouvez-vous préciser votre besoin ?';
+  if (c.type === 'saisie_libre') {
+    decisionQuestion.textContent = question;
+    decisionOptions.innerHTML = '';
+    const champ = document.createElement('input');
+    champ.type = 'text'; champ.maxLength = 200; champ.placeholder = 'Votre réponse…';
+    champ.className = 'decision-option'; champ.style.cssText = 'cursor:text;text-align:left;width:100%;';
+    const envoyer = document.createElement('button');
+    envoyer.type = 'button'; envoyer.className = 'decision-option'; envoyer.textContent = 'Envoyer';
+    const valider = () => { if (champ.value.trim()) preciser(c.option_choisie || 'lieu', champ.value.trim()); };
+    envoyer.addEventListener('click', valider);
+    champ.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); valider(); } });
+    decisionOptions.append(champ, envoyer);
+    decisionBox.classList.add('show');
+    document.body.classList.add('decision-open');
+    champ.focus();
+    return;
+  }
+  afficherMessageBoite(question, (c.options || []).map(o => ({
+    label: o.libelle, danger: o.style === 'danger', onClick: () => preciser(o.id, null)
+  })).concat([{ label: 'Fermer', onClick: hideDecision }]));
+}
+
+async function preciser(idOption, texteLibre) {
+  afficherMessageBoite('Recherche en cours…', []);
+  try {
+    const r = await appelApi('/recherche/preciser',
+      { id_resultat: dernierIdResultat, id_option: idOption, texte_libre: texteLibre });
+    await traiterResultat(r);
+  } catch (e) {
+    afficherMessageBoite('Impossible de traiter votre précision.', [{ label: 'Fermer', onClick: hideDecision }]);
+  }
+}
+
+function afficherUrgence(u) {
+  const contacts = (u.contacts || []).map(c => `${c.service} : ${c.numero}`).join(' · ');
+  afficherMessageBoite(u.message + (contacts ? '  ' + contacts : ''), [{ label: 'Fermer', onClick: hideDecision }]);
+}
+
+const LIBELLES_PRECISION = { precis: 'Position précise', centroide: 'Centre de la zone', repli_hierarchique: 'Position approximative' };
+
+function afficherLieuxSurLaCarte(r) {
+  DATA.api = (r.lieux || []).map(l => ({
+    name: l.nom,
+    type: l.produit || l.categorie || l.niveau || 'lieu',
+    lat: l.coordonnees.latitude, lng: l.coordonnees.longitude,
+    dist: null, open: null,
+    addr: [l.district, l.region].filter(Boolean).join(', ') || '—',
+    hours: null,
+    desc: l.description || '',
+    precision: LIBELLES_PRECISION[l.coordonnees.precision] || '',
+    note: l.note_google ? `${l.note_google.note}/5 (${l.note_google.nombre_avis ?? '?'} avis)` : null
+  }));
+  TITLES.api = r.reponse && r.reponse.texte ? r.reponse.texte : 'Résultats';
+  currentFilter = 'api';
+  if (currentView !== 'map') switchView('map'); else { renderSidebar('api'); }
+  if (r.carte && map) setTimeout(() => map.setView([r.carte.centre.latitude, r.carte.centre.longitude], Math.min(r.carte.zoom_suggere, 12)), 500);
+  if (r.reponse && r.reponse.recherche_google === 'en_cours') suivreResultat(r.id_resultat);   // l'IA/Google finissent en arrière-plan
+}
+
+// ═══════════════════════════════════════════════
+// DOWNLOAD
+// ═══════════════════════════════════════════════
+let qrInitialized = false;
+let cardsAnimated = false;
+
+function initQR() {
+  if (qrInitialized) return;
+  if (typeof QRCode === 'undefined') return;
+  const canvas = document.getElementById('qrcode');
+  if (!canvas) return;
+  QRCode.toCanvas(canvas, 'https://connecteo.mg/get', {
+    width: 200, margin: 0,
+    color: { dark: '#16161a', light: '#ffffff' },
+    errorCorrectionLevel: 'H'
+  }, (err) => {
+    if (err) console.warn(err);
+    else qrInitialized = true;
+  });
+}
+
+function animateDownloadCards() {
+  if (cardsAnimated) return;
+  document.querySelectorAll('.platform-card').forEach(c => c.classList.add('in'));
+  cardsAnimated = true;
+}
+</script>
+
+</body>
+</html>
