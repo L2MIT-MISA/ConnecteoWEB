@@ -51,33 +51,6 @@
     font-weight: 600;
 }
 
-.bulle-vide {
-    color: #8e8e96;
-    font-style: italic;
-}
-
-/* Badges technologiques */
-.bulle-badges {
-    display: inline-flex;
-    gap: 4px;
-    flex-wrap: wrap;
-}
-
-.badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 700;
-    color: white;
-    letter-spacing: 0.3px;
-}
-
-.badge-2g { background: #3498db; }
-.badge-3g { background: #9b59b6; }
-.badge-4g { background: #e74c3c; }
-.badge-5g { background: #27ae60; }
-
 /* Coordonnées en bas */
 .bulle-coords {
     font-size: 11px;

@@ -29,6 +29,7 @@ export default function SearchPage() {
   const [sources, setSources] = useState<SourceIA[]>([]);
   const [carte, setCarte] = useState<CarteIA | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [demandeItineraire, setDemandeItineraire] = useState(0);
   const [vue, setVue] = useState<"chat" | "liste">("chat");
   const [busy, setBusy] = useState(Boolean(initiale));
 
@@ -112,9 +113,22 @@ export default function SearchPage() {
 
       <section className="search-map-column" aria-label="Carte et informations">
         <div className="sr-map-wrap">
-          <ConnecteoMap lieux={lieux} carte={carte} selected={selected} onSelect={(l: Lieu | null) => setSelectedId(l?.id ?? null)} />
+          <ConnecteoMap
+            lieux={lieux}
+            carte={carte}
+            selected={selected}
+            demandeItineraire={demandeItineraire}
+            onSelect={(l: Lieu | null) => setSelectedId(l?.id ?? null)}
+          />
         </div>
-        {selected && <PlaceInfo key={selected.id} lieu={selected} sources={sources} />}
+        {selected && (
+          <PlaceInfo
+            key={selected.id}
+            lieu={selected}
+            sources={sources}
+            onItineraire={() => setDemandeItineraire((n) => n + 1)}
+          />
+        )}
       </section>
     </main>
   );

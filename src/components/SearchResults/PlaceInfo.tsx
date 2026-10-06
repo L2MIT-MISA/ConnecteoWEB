@@ -1,195 +1,104 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { Lieu, SourceIA } from "../../pages/Search/searchTypes";
-import { chargerCouverture, type Couverture } from "./couverture";
-import { ImageIcon } from "./icons";
-import { distance, fmt1, hueDe, libellePrecision, plur, typeDe, urlHttp } from "./placeFormat";
-
-type Carte = "photos" | "infos" | "reseau";
-const TECHS = ["2G", "3G", "4G", "5G"] as const;
+import { useEffect, useState } from "react";
+import type { Connectivite, Lieu, SourceIA } from "../../pages/Search/searchTypes";
+import { chargerConnectivite } from "../../services/connectivite";
+import CarteLieu, { type CarteId } from "./CarteLieu";
+import { DetailsConnectivite, DetailsInfos, DetailsSecurite, DetailsTransport } from "./DetailsLieu";
+import GaleriePhotos from "./GaleriePhotos";
+import { fmt1, hueDe, typeDe } from "./placeFormat";
 
 interface Props {
   lieu: Lieu;
   sources: SourceIA[];
+  /** « Voir l'itinéraire » (carte Transport) : demande à la carte de tracer la route vers ce lieu. */
+  onItineraire: () => void;
 }
 
-// Rendu avec key={lieu.id} côté parent : l'état repart à zéro à chaque lieu.
-export default function PlaceInfo({ lieu, sources }: Props) {
-  const [ouvert, setOuvert] = useState<Carte | null>(null);
-  const [slide, setSlide] = useState(0);
-  const [casses, setCasses] = useState<string[]>([]);
-  const [couverture, setCouverture] = useState<Couverture | null>(null);
-  const touche = useRef(0);
+const INDISPONIBLE = <p className="sr-brief sr-vide">Information non disponible pour ce lieu.</p>;
 
-  const n = lieu.images.length;
-  const idx = n ? slide % n : 0;
-  const image = lieu.images[idx];
+// Bande sous la carte : photos, infos, sécurité, transport, connectivité.
+// Sécurité, transport et connectivité sont toujours affichés comme dans la maquette ;
+// sans données, la carte indique « non disponible ».
+// Rendu avec key={lieu.id} côté parent : l'état repart à zéro à chaque lieu.
+export default function PlaceInfo({ lieu, sources, onItineraire }: Props) {
+  const [ouvert, setOuvert] = useState<CarteId | null>(null);
+  // undefined = chargement en cours, null = aucune donnée
+  const [calculee, setCalculee] = useState<Connectivite | null | undefined>(undefined);
+  const commun = { ouvert, onOuvrir: setOuvert, onFermer: () => setOuvert(null) };
+  const { securite, transport } = lieu;
   const hue = hueDe(lieu.id);
 
+  // Si l'IA n'a pas fourni la connectivité, on la calcule depuis les pylônes proches (backend).
+  const { lat, lng } = lieu.position;
+  const dejaFournie = lieu.connectivite !== null;
   useEffect(() => {
-    if (n < 2) return;
-    const timer = setInterval(() => {
-      if (Date.now() - touche.current >= 4000) setSlide((s) => s + 1);
-    }, 3500);
-    return () => clearInterval(timer);
-  }, [n]);
-
-  useEffect(() => {
+    if (dejaFournie) return;
     const ctrl = new AbortController();
-    chargerCouverture(lieu.position.lat, lieu.position.lng, ctrl.signal)
-      .then(setCouverture)
-      .catch(() => {});
+    chargerConnectivite(lat, lng, ctrl.signal)
+      .then(setCalculee)
+      .catch(() => { if (!ctrl.signal.aborted) setCalculee(null); });
     return () => ctrl.abort();
-  }, [lieu.position.lat, lieu.position.lng]);
+  }, [dejaFournie, lat, lng]);
+  const connectivite = lieu.connectivite ?? calculee;
 
-  const aller = (i: number) => { touche.current = Date.now(); setSlide(i); };
-  const bump = (d: number) => aller((idx + d + n) % n);
-  const visible = (c: Carte) => !ouvert || ouvert === c;
-  const cls = (c: Carte, large = false) => `sr-card${ouvert === c ? " open" : ""}${large ? " wide" : ""}`;
-
-  const fond = (k: number) => `linear-gradient(135deg, hsl(${hue + k * 16},42%,38%), hsl(${hue + 34 + k * 16},48%,26%))`;
-  const sourcesCitees = lieu.sourcesCitees.map((ref) => sources.find((s) => s.reference === ref) ?? { reference: ref });
-
-  const lignes: { k: string; v: ReactNode }[] = [];
   const type = typeDe(lieu);
-  if (type) lignes.push({ k: "Type", v: type });
-  if (lieu.district) lignes.push({ k: "District", v: lieu.district });
-  if (lieu.region) lignes.push({ k: "Région", v: lieu.region });
-  if (lieu.codeOfficiel) lignes.push({ k: "Code officiel", v: lieu.codeOfficiel });
-  lignes.push({ k: "Position", v: libellePrecision(lieu) });
-  if (lieu.noteGoogle !== null) lignes.push({ k: "Note Google", v: `${fmt1(lieu.noteGoogle)} / 5` });
-  if (lieu.nbAvis !== null) lignes.push({ k: "Avis", v: plur(lieu.nbAvis, "avis", "avis") });
-  for (const a of lieu.avis) lignes.push({ k: "Avis", v: a });
-  if (sourcesCitees.length) {
-    lignes.push({
-      k: "Sources",
-      v: sourcesCitees.map((s, i) => {
-        const href = "url" in s ? urlHttp(s.url) : null;
-        const label = ("titre" in s && s.titre) || s.reference;
-        return (
-          <span key={s.reference}>
-            {i > 0 && ", "}
-            {href ? <a href={href} target="_blank" rel="noopener noreferrer">{label}</a> : label}
-          </span>
-        );
-      }),
-    });
-  }
-
-  const puce = lieu.noteGoogle !== null
+  const puceInfos = lieu.noteGoogle !== null
     ? { texte: `★ ${fmt1(lieu.noteGoogle)}`, ton: lieu.noteGoogle >= 4 ? "ok" : "warn" }
     : type ? { texte: type, ton: "" } : null;
 
-  const Moins = () => <button type="button" className="sr-less" onClick={() => setOuvert(null)}>Voir moins ↑</button>;
-  const Plus = ({ pour }: { pour: Carte }) => <button type="button" className="sr-more" onClick={() => setOuvert(pour)}>Voir plus ↓</button>;
-
   return (
-    <section className="sr-info" aria-label="Informations sur le lieu choisi">
+    <section className={`sr-info${ouvert ? " open" : ""}`} aria-label="Informations sur le lieu choisi">
       <div className="sr-cards">
-        {n > 0 && visible("photos") && (
-          <article className={cls("photos", true)}>
-            <div className="sr-card-head">
-              <h3>Photos</h3>
-              {ouvert === "photos" && <Moins />}
-            </div>
-            <div className="sr-photos">
-              <div className={`sr-photo-box${ouvert === "photos" ? " open" : ""}`} style={{ background: fond(idx) }}>
-                {image && !casses.includes(image.url) ? (
-                  <img src={image.url} alt={image.legende ?? lieu.nom} onError={() => setCasses((c) => [...c, image.url])} />
-                ) : (
-                  <span className="sr-photo-ph"><ImageIcon /><span>Photo indisponible</span></span>
-                )}
-                {n > 1 && (
-                  <>
-                    <button type="button" className="sr-photo-hit" aria-label="Photo suivante" onClick={() => bump(1)} />
-                    <div className="sr-dots" aria-hidden="true">
-                      {lieu.images.map((_, k) => <span key={k} className={k === idx ? "on" : ""} />)}
-                    </div>
-                  </>
-                )}
-                {ouvert === "photos" && n > 1 && (
-                  <>
-                    <button type="button" className="sr-arrow left" aria-label="Photo précédente" onClick={() => bump(-1)}>‹</button>
-                    <button type="button" className="sr-arrow right" aria-label="Photo suivante" onClick={() => bump(1)}>›</button>
-                  </>
-                )}
-              </div>
-              {ouvert === "photos" && (
-                <div className="sr-thumbs">
-                  {lieu.images.map((im, k) => (
-                    <button
-                      key={im.url}
-                      type="button"
-                      className={k === idx ? "on" : ""}
-                      aria-label={`Voir la photo ${k + 1}${im.legende ? ` : ${im.legende}` : ""}`}
-                      style={{ background: fond(k) }}
-                      onClick={() => aller(k)}
-                    >
-                      {casses.includes(im.url) ? k + 1 : <img src={im.url} alt="" onError={() => setCasses((c) => [...c, im.url])} />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="sr-caption">
-              <span>{image?.legende ?? ""}</span>
-              <span>{n > 1 ? `${idx + 1} / ${n}` : "1 photo"}</span>
-            </div>
-            {ouvert !== "photos" && <Plus pour="photos" />}
-          </article>
+        {lieu.images.length > 0 && (
+          <CarteLieu
+            id="photos"
+            titre="Photos"
+            large
+            resume={<GaleriePhotos images={lieu.images} nom={lieu.nom} hue={hue} />}
+            details={<GaleriePhotos images={lieu.images} nom={lieu.nom} hue={hue} grande />}
+            {...commun}
+          />
         )}
 
-        {visible("infos") && (
-          <article className={cls("infos")}>
-            <div className="sr-card-head">
-              <h3>Informations</h3>
-              {puce && <span className={`sr-badge ${puce.ton}`}>{puce.texte}</span>}
-              {ouvert === "infos" && <Moins />}
-            </div>
-            {ouvert === "infos" ? (
-              <div className="sr-rows">
-                {lieu.description && <p className="sr-desc">{lieu.description}</p>}
-                {lignes.map((r, i) => (
-                  <div className="sr-row" key={i}><span>{r.k}</span><strong>{r.v}</strong></div>
-                ))}
-              </div>
-            ) : (
-              <>
-                <p className="sr-brief clamp">{lieu.description ?? (lieu.sousTitre || "Aucune description.")}</p>
-                <Plus pour="infos" />
-              </>
-            )}
-          </article>
-        )}
+        <CarteLieu
+          id="infos"
+          titre="Informations"
+          badge={puceInfos}
+          resume={<p className="sr-brief clamp">{lieu.description ?? (lieu.sousTitre || "Aucune description.")}</p>}
+          details={<DetailsInfos lieu={lieu} sources={sources} />}
+          {...commun}
+        />
 
-        {couverture && visible("reseau") && (
-          <article className={cls("reseau")}>
-            <div className="sr-card-head">
-              <h3>Connectivité</h3>
-              <span className={`sr-badge ${couverture.ok ? "ok" : "warn"}`}>{couverture.label}</span>
-              {ouvert === "reseau" && <Moins />}
-            </div>
-            {ouvert === "reseau" ? (
-              <div className="sr-rows">
-                {couverture.operateurs.map((o) => (
-                  <div className="sr-op" key={o.nom}>
-                    <strong>{o.nom}</strong>
-                    <div className="sr-techs">
-                      {TECHS.map((t) => <span key={t} className={o.techs[t] ? "on" : "off"}>{t}</span>)}
-                    </div>
-                    <span className="sr-op-tw">
-                      {o.pylone ? `Pylône ${o.pylone.nom} à ${distance(o.pylone.distance)}` : `Aucun pylône ${o.nom} à proximité`}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <>
-                <p className="sr-brief">{couverture.brief}</p>
-                <Plus pour="reseau" />
-              </>
-            )}
-          </article>
-        )}
+        <CarteLieu
+          id="securite"
+          titre="Sécurité"
+          badge={securite?.niveau ? { texte: securite.niveau, ton: securite.ton ?? "" } : null}
+          resume={securite ? <p className="sr-brief">{securite.resume ?? "Voir le détail."}</p> : INDISPONIBLE}
+          details={securite ? <DetailsSecurite securite={securite} /> : undefined}
+          voirPlusInactif
+          {...commun}
+        />
+
+        <CarteLieu
+          id="transport"
+          titre="Transport"
+          resume={transport ? <>{transport.resume.map((l, i) => <p className="sr-brief" key={i}>{l}</p>)}</> : INDISPONIBLE}
+          details={transport ? <DetailsTransport transport={transport} onItineraire={onItineraire} /> : undefined}
+          voirPlusInactif
+          {...commun}
+        />
+
+        <CarteLieu
+          id="reseau"
+          titre="Connectivité"
+          badge={connectivite ? { texte: connectivite.label, ton: connectivite.ok ? "ok" : "warn" } : null}
+          resume={
+            connectivite ? <p className="sr-brief">{connectivite.brief}</p>
+              : connectivite === undefined ? <p className="sr-brief sr-vide">Chargement…</p>
+              : INDISPONIBLE
+          }
+          details={connectivite ? <DetailsConnectivite connectivite={connectivite} /> : undefined}
+          {...commun}
+        />
       </div>
     </section>
   );

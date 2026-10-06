@@ -9,35 +9,6 @@ import './style/Bulle.css';
 import './style/Zoom.css';
 
 const CENTRE = { lat: -18.8792, lng: 47.5079 };
-const API_URL = `${import.meta.env.VITE_SEARCH_API_URL || 'http://127.0.0.1:8000'}/api/pylones`;
-
-const COULEURS_OPERATEURS = {
-    'Orange': '#f39c12',
-    'Airtel': '#db1e1e',
-    'Telma': '#2249e6',
-    'Yas': '#2249e6',      // Yas = Telma (même couleur)
-    'default': '#3b5456'
-};
-
-function getCouleurOperateur(proprietaire) {
-    if (!proprietaire) return COULEURS_OPERATEURS.default;
-    const p = proprietaire.toLowerCase();
-    if (p.includes('yas') || p.includes('telma')) return COULEURS_OPERATEURS['Yas'];
-    if (p.includes('orange')) return COULEURS_OPERATEURS['Orange'];
-    if (p.includes('airtel')) return COULEURS_OPERATEURS['Airtel'];
-    return COULEURS_OPERATEURS.default;
-}
-
-function getIconeOperateur(codeOperateur) {
-    if (!codeOperateur) return '/pylone.png';
-    const code = String(codeOperateur).toUpperCase();
-    if (code.includes('TELMA') || code.includes('YAS')) return '/yas.svg';
-    if (code.includes('ORANGE')) return '/orange.svg';
-    if (code.includes('AIRTEL')) return '/airtel.svg';
-    if (code.includes('GULFSAT')) return '/gulfsat.svg';
-    return '/pylone.png';
-}
-
 // ============================================================
 // BOUTONS DE ZOOM
 // ============================================================
@@ -48,47 +19,6 @@ function ZoomControls() {
             <button className="zoom-btn" onClick={() => map.setZoom((map.getZoom() || 6) + 1)}>+</button>
             <button className="zoom-btn" onClick={() => map.setZoom((map.getZoom() || 6) - 1)}>−</button>
         </div>
-    );
-}
-
-// ============================================================
-// BULLE PYLÔNE
-// ============================================================
-function BullePylone({ pylone, onClose }) {
-    const operateurPourCouleur = pylone.code_operateur || pylone.proprietaire || '';
-    const couleur = getCouleurOperateur(operateurPourCouleur);
-
-    const badges = [];
-    if (pylone.tech_5g) badges.push(<span key="5g" className="badge badge-5g">5G</span>);
-    if (pylone.tech_4g) badges.push(<span key="4g" className="badge badge-4g">4G</span>);
-    if (pylone.tech_3g) badges.push(<span key="3g" className="badge badge-3g">3G</span>);
-    if (pylone.tech_2g) badges.push(<span key="2g" className="badge badge-2g">2G</span>);
-
-    return (
-        <InfoWindow
-            position={{ lat: parseFloat(pylone.lat), lng: parseFloat(pylone.lon) }}
-            onCloseClick={onClose}
-            pixelOffset={[0, -50]}
-        >
-            <div className="bulle-pylone">
-                <div className="bulle-header" style={{ borderBottomColor: couleur }}>
-                    <span className="bulle-icone">📡</span>
-                    <h3 style={{ color: couleur }}>{pylone.nom || pylone.code_site || 'Pylône'}</h3>
-                </div>
-                <div className="bulle-corps">
-                    {pylone.code_operateur && (
-                        <div className="bulle-ligne"><strong>Code opérateur :</strong> {pylone.code_operateur}</div>
-                    )}
-                    {pylone.nom_region && (
-                        <div className="bulle-ligne"><strong>Région :</strong> {pylone.nom_region}</div>
-                    )}
-                    <div className="bulle-ligne">
-                        <strong>Technologies :</strong>{' '}
-                        {badges.length > 0 ? <span className="bulle-badges">{badges}</span> : <span className="bulle-vide">Aucune</span>}
-                    </div>
-                </div>
-            </div>
-        </InfoWindow>
     );
 }
 
@@ -236,20 +166,30 @@ async function calculerItineraire(depart, arrivee) {
 // ============================================================
 // PANNEAU ITINÉRAIRE
 // ============================================================
-function PanneauItineraire({ onCalculer, onEffacer, infos, chargement }) {
+function PanneauItineraire({ onCalculer, onEffacer, infos, chargement, destination, demande }) {
     const [ouvert, setOuvert] = useState(false);
     const [depart, setDepart] = useState('');
     const [arrivee, setArrivee] = useState('');
+    const [coordArrivee, setCoordArrivee] = useState(null);
+
+    // « Voir l'itinéraire » (fiche du lieu) : ouvre le panneau avec le lieu comme destination
+    useEffect(() => {
+        if (!demande || !destination) return;
+        setOuvert(true);
+        setArrivee(destination.nom);
+        setCoordArrivee(destination.position);
+    }, [demande]);
 
     const handleCalculer = (e) => {
         e.preventDefault();
         if (!depart.trim() || !arrivee.trim()) return;
-        onCalculer(depart.trim(), arrivee.trim());
+        onCalculer(depart.trim(), arrivee.trim(), coordArrivee);
     };
 
     const handleEffacer = () => {
         setDepart('');
         setArrivee('');
+        setCoordArrivee(null);
         onEffacer();
     };
 
@@ -271,7 +211,7 @@ function PanneauItineraire({ onCalculer, onEffacer, infos, chargement }) {
                         </div>
                         <div className="itineraire-champ">
                             <span className="icone">🔴</span>
-                            <input type="text" placeholder="Destination" value={arrivee} onChange={(e) => setArrivee(e.target.value)} />
+                            <input type="text" placeholder="Destination" value={arrivee} onChange={(e) => { setArrivee(e.target.value); setCoordArrivee(null); }} />
                         </div>
                         <div className="itineraire-actions">
                             <button type="submit" className="btn-calculer" disabled={chargement}>
@@ -297,17 +237,6 @@ function PanneauItineraire({ onCalculer, onEffacer, infos, chargement }) {
 // ============================================================
 // BBOX + ZOOM SELON RAYON
 // ============================================================
-function bboxAutourDe(lat, lng, rayonKm) {
-    const deltaLat = rayonKm / 111;
-    const deltaLng = rayonKm / (111 * Math.cos(lat * Math.PI / 180));
-    return {
-        minLat: lat - deltaLat,
-        maxLat: lat + deltaLat,
-        minLng: lng - deltaLng,
-        maxLng: lng + deltaLng
-    };
-}
-
 function zoomPourRayon(rayonKm) {
     if (rayonKm <= 1) return 15;
     if (rayonKm <= 2) return 14;
@@ -326,9 +255,7 @@ const RAYON_KM = 10;
 // ============================================================
 // COMPOSANT PRINCIPAL
 // ============================================================
-function ConnecteoMap({ lieux = [], carte = null, selected = null, onSelect }: any) {
-    const [pylones, setPylones] = useState([]);
-    const [pyloneSelectionne, setPyloneSelectionne] = useState(null);
+function ConnecteoMap({ lieux = [], carte = null, selected = null, demandeItineraire = 0, onSelect }: any) {
     const [trace, setTrace] = useState(null);
     const [infosItineraire, setInfosItineraire] = useState(null);
     const [chargementItineraire, setChargementItineraire] = useState(false);
@@ -366,48 +293,16 @@ function ConnecteoMap({ lieux = [], carte = null, selected = null, onSelect }: a
     }, [selected, lieux, mapInstance]);
 
     // ----------------------------------------------------------
-    // Charge les pylônes dans une bounding box
-    // ----------------------------------------------------------
-    const chargerPylonesDansBbox = async (bbox) => {
-        try {
-            const url = `${API_URL}/bbox?minLat=${bbox.minLat}&minLng=${bbox.minLng}&maxLat=${bbox.maxLat}&maxLng=${bbox.maxLng}`;
-            console.log('Chargement pylônes depuis', url);
-
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-
-            const valides = data.filter(p =>
-                p.lat != null && p.lon != null &&
-                !isNaN(parseFloat(p.lat)) && !isNaN(parseFloat(p.lon))
-            );
-            console.log(`${valides.length} pylônes reçus`);
-            setPylones(valides);
-        } catch (err) {
-            console.error('Erreur chargement pylônes :', err);
-            setPylones([]);
-        }
-    };
-
-    // ----------------------------------------------------------
-    // Chargement initial autour d'Antananarivo
-    // ----------------------------------------------------------
-    useEffect(() => {
-        const c = selected?.position ?? lieux[0]?.position ?? CENTRE;
-        chargerPylonesDansBbox(bboxAutourDe(c.lat, c.lng, RAYON_KM));
-    }, [selected, lieux]);
-
-    // ----------------------------------------------------------
     // Itinéraire
     // ----------------------------------------------------------
-    const handleCalculer = async (adresseDepart, adresseArrivee) => {
+    const handleCalculer = async (adresseDepart, adresseArrivee, coordArrivee) => {
         setChargementItineraire(true);
         setInfosItineraire(null);
         setTrace(null);
 
         try {
             const depart = await geocoder(adresseDepart);
-            const arrivee = await geocoder(adresseArrivee);
+            const arrivee = coordArrivee ?? await geocoder(adresseArrivee);
             const resultat = await calculerItineraire(depart, arrivee);
             setTrace(resultat.trace);
             setInfosItineraire({ distance: resultat.distance, duree: resultat.duree });
@@ -425,7 +320,6 @@ function ConnecteoMap({ lieux = [], carte = null, selected = null, onSelect }: a
     };
 
     const handleMapClick = () => {
-        setPyloneSelectionne(null);
         setLoraSelectionneId(null);
     };
 
@@ -463,43 +357,6 @@ function ConnecteoMap({ lieux = [], carte = null, selected = null, onSelect }: a
                         );
                     })}
 
-                    {/* Pylônes */}
-                    {pylones.map((pylone, i) => {
-                        const icone = getIconeOperateur(pylone.code_operateur || pylone.proprietaire);
-                        return (
-                            <AdvancedMarker
-                                key={pylone.code_site || i}
-                                position={{
-                                    lat: parseFloat(pylone.lat),
-                                    lng: parseFloat(pylone.lon)
-                                }}
-                                title={pylone.nom || 'Pylône'}
-                                onClick={() => setPyloneSelectionne(pylone)}
-                            >
-                                <img
-                                    src={icone}
-                                    alt={`Pylône ${pylone.code_operateur || ''}`}
-                                    style={{
-                                        width: '36px',
-                                        height: 'auto',
-                                        cursor: 'pointer',
-                                        filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))',
-                                        transition: 'transform 0.15s ease'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.2)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                                />
-                            </AdvancedMarker>
-                        );
-                    })}
-
-                    {pyloneSelectionne && (
-                        <BullePylone
-                            pylone={pyloneSelectionne}
-                            onClose={() => setPyloneSelectionne(null)}
-                        />
-                    )}
-
                     {/* Dispositifs LoRa en temps réel */}
                     {dispositifsLora.map((d) => (
                         <MarqueurLora
@@ -528,12 +385,6 @@ function ConnecteoMap({ lieux = [], carte = null, selected = null, onSelect }: a
                 </div>
             )}
 
-            <div className="sr-legend" aria-label="Légende des opérateurs">
-                <span><i style={{ background: '#E8772E' }} />Orange</span>
-                <span><i style={{ background: '#1F5FBF' }} />Telma</span>
-                <span><i style={{ background: '#B3234F' }} />Airtel</span>
-            </div>
-
             <button type="button" className="sr-recenter" aria-label="Recentrer sur les résultats" onClick={recentrer}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" /></svg>
             </button>
@@ -543,6 +394,8 @@ function ConnecteoMap({ lieux = [], carte = null, selected = null, onSelect }: a
                 onEffacer={handleEffacer}
                 infos={infosItineraire}
                 chargement={chargementItineraire}
+                destination={selected}
+                demande={demandeItineraire}
             />
         </div>
     );

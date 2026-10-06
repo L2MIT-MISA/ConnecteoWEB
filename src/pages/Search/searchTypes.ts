@@ -16,6 +16,26 @@ export interface SourceIA {
   fichier?: string | null;
 }
 
+export type Techno = "2G" | "3G" | "4G" | "5G";
+
+// Connectivité : même format que `connectivityDetails` produit par le backend (datafusion.py).
+export interface TourIA { name?: string | null; distance_meters?: number | null }
+export interface OperateurIA {
+  technologies?: Partial<Record<Techno, boolean>> | null;
+  technologies_actives?: string[] | null;
+  nearest_towers_by_technology?: Record<string, TourIA | null> | null;
+}
+export interface ConnectiviteIA { available?: boolean; operators?: Record<string, OperateurIA> | null }
+
+export interface SecuriteIA {
+  niveau?: string | null;
+  ton?: "ok" | "warn" | null;
+  resume?: string | null;
+  details?: { label: string; valeur: string }[] | null;
+}
+export interface TransportOptionIA { mode: string; detail?: string | null; duree_min?: number | null }
+export interface TransportIA { resume?: string | null; options?: TransportOptionIA[] | null }
+
 export interface LieuIA {
   nom: string;
   niveau?: string | null;
@@ -36,6 +56,10 @@ export interface LieuIA {
   source?: string | null;
   image_source?: string | null;
   images?: ImageIA[] | null;
+  securite?: SecuriteIA | null;
+  transport?: TransportIA | null;
+  connectivite?: ConnectiviteIA | null;
+  connectivityDetails?: ConnectiviteIA | null;
 }
 
 export interface CarteIA {
@@ -70,6 +94,21 @@ export interface Image {
   legende: string | null;
 }
 
+export interface Securite {
+  niveau: string | null;
+  ton: "ok" | "warn" | null;
+  resume: string | null;
+  details: { label: string; valeur: string }[];
+}
+export interface TransportOption { mode: string; detail: string | null; duree: string | null }
+export interface Transport { resume: string[]; options: TransportOption[] }
+export interface OperateurConnectivite {
+  nom: string;
+  techs: Record<Techno, boolean>;
+  tour: { nom: string; distance: number } | null;
+}
+export interface Connectivite { operateurs: OperateurConnectivite[]; label: string; brief: string; ok: boolean }
+
 export interface Lieu {
   id: string;
   nom: string;
@@ -87,5 +126,7 @@ export interface Lieu {
   avis: string[];
   nbAvis: number | null;
   sourcesCitees: string[];
-  images: Image[];
+  images: Image[];  securite: Securite | null;
+  transport: Transport | null;
+  connectivite: Connectivite | null;
 }

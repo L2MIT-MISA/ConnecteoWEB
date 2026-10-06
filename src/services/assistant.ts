@@ -1,4 +1,5 @@
 import type { Image, Lieu, LieuIA, ReponseIA } from "../pages/Search/searchTypes";
+import { connectiviteDe, securiteDe, transportDe } from "./detailsLieu";
 
 const AI_URL = import.meta.env.VITE_AI_API_URL || "http://127.0.0.1:8000";
 
@@ -65,6 +66,9 @@ function normaliser(l: LieuIA, index: number, approximatif: boolean): Lieu | nul
     nbAvis: typeof l.avis === "number" ? l.avis : null,
     sourcesCitees: l.sources_citees ?? [],
     images,
+    securite: securiteDe(l.securite),
+    transport: transportDe(l.transport),
+    connectivite: connectiviteDe(l.connectivite ?? l.connectivityDetails),
   };
 }
 

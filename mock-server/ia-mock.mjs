@@ -28,6 +28,47 @@ const AVIS = ["Accueil chaleureux, chambre propre.", "Bien situé, un peu bruyan
 
 const maintenant = () => new Date().toISOString();
 
+// Données de démo pour les cartes Sécurité / Transport / Connectivité de la fiche.
+// `connectivite` reprend le format `connectivityDetails` du backend (datafusion.py).
+function blocsDetails(i) {
+  const tour = (name, d) => ({ name, distance_meters: d });
+  const op = (techs, t) => ({
+    technologies: Object.fromEntries(["2G", "3G", "4G", "5G"].map((g) => [g, techs.includes(g)])),
+    technologies_actives: techs,
+    nearest_towers_by_technology: Object.fromEntries(["2G", "3G", "4G", "5G"].map((g) => [g, techs.includes(g) ? t : null])),
+  });
+  const d = 120 + ((i * 97) % 380);
+  return {
+    securite: i % 5 === 4 ? null : {
+      niveau: i % 3 === 2 ? "À surveiller le soir" : "Quartier calme",
+      ton: i % 3 === 2 ? "warn" : "ok",
+      resume: `Police à ${400 + i * 40} m. Affluence le soir : ${i % 3 === 2 ? "élevée" : "faible"}.`,
+      details: [
+        { label: "Éclairage public", valeur: "Oui, jusqu'à 22 h" },
+        { label: "Poste de police", valeur: `À ${400 + i * 40} m` },
+        { label: "Affluence le soir", valeur: i % 3 === 2 ? "Élevée" : "Faible" },
+        { label: "Retour de nuit", valeur: i % 3 === 2 ? "Taxi conseillé" : "Sans souci" },
+      ],
+    },
+    transport: i % 6 === 5 ? null : {
+      options: [
+        { mode: "Taxi-be", detail: `Arrêt à ${d} m du lieu`, duree_min: 18 },
+        { mode: "Taxi", detail: "Course depuis le centre-ville", duree_min: 11 },
+        { mode: "Taxi moto", detail: "Depuis le centre-ville", duree_min: 9 },
+        { mode: "À pied", detail: "Depuis l'arrêt de taxi-be", duree_min: 3 },
+      ],
+    },
+    connectivite: i % 7 === 6 ? null : {
+      available: true,
+      operators: {
+        ORANGE: op(["2G", "3G", "4G", "5G"], tour("Orange 3", d + 140)),
+        TELMA: op(["2G", "3G", "4G"], tour("Telma 4", d + 240)),
+        AIRTEL: op(["2G", "3G", "4G"], tour("Airtel 5", d + 340)),
+      },
+    },
+  };
+}
+
 function lieuxDemo(base) {
   const sources = [];
   const lieux = TYPES.map(([type, quartier], i) => {
@@ -70,6 +111,7 @@ function lieuxDemo(base) {
       source: "google",
       image_source: images[0]?.url ?? null,
       images,
+      ...blocsDetails(i),
     };
   });
   return { lieux, sources };
