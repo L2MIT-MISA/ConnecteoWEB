@@ -21,7 +21,7 @@
   inset: 0;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(300px, 380px) 1fr;
+  grid-template-columns: 320px 1fr;
   padding-top: 64px;
 }
 
@@ -34,6 +34,17 @@
 .search-map-column {
   min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f6f7f4;
+}
+
+.sr-map-wrap {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 260px;
+  overflow: hidden;
+  background: #e4ece6;
 }
 
 .search-page-state {
@@ -97,18 +108,26 @@
 
 @media (max-width: 760px) {
   .search-map-page {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(230px, 42vh) 1fr;
-    padding-top: 64px;
-  }
-
-  .search-map-side {
-    order: 2;
-    border-right: 0;
-    border-top: 1px solid var(--sr-line);
+    display: block;
+    overflow-y: auto;
   }
 
   .search-map-column {
-    order: 1;
+    height: auto;
+  }
+
+  .sr-map-wrap {
+    flex: none;
+    height: 56vh;
+  }
+
+  .sr-info {
+    flex: none;
+  }
+
+  .search-map-side {
+    height: 72vh;
+    border-right: 0;
+    border-top: 1px solid var(--sr-line);
   }
 }

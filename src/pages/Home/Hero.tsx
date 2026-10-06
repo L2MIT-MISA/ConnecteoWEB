@@ -2,8 +2,6 @@ import { useEffect, useState, type FormEvent } from "react";
 import SiteHeader from "../../components/SiteHeader/SiteHeader";
 import { fill } from "../../i18n/index";
 import { useLang } from "../../i18n/LanguageContext";
-import { askAssistant, type AssistantOption, type AssistantResponse } from "../../services/assistant";
-import { parseSearchQuery } from "../../services/searchQuery";
 import { HERO_SLIDES } from "./galleryData";
 import Steps, { type Step } from "./Steps";
 
@@ -11,17 +9,19 @@ function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function goToSearch(parsed: { query: string; type: string; category: string | null; intent: string | null; location: string | null; relation: null }) {
-  sessionStorage.setItem("connecteo-search", JSON.stringify(parsed));
+function goToSearch(text: string) {
+  try {
+    sessionStorage.setItem("connecteo-requete", text);
+  } catch {
+    /* stockage indisponible */
+  }
   window.location.hash = "#pages/Search";
 }
 
 export default function Hero() {
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [assistant, setAssistant] = useState<AssistantResponse | null>(null);
-  const { lang, t } = useLang();
+  const { t } = useLang();
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
   const slides = HERO_SLIDES.map((item, i) => ({
@@ -54,66 +54,14 @@ export default function Hero() {
     }
   }, []);
 
-  async function runSearch(text: string) {
-    const value = text.trim();
-    if (!value) {
-      setMessage(t.hero.emptyQuery);
-      setAssistant(null);
-      return;
-    }
-    setBusy(true);
-    setAssistant(null);
-    setMessage(fill(t.hero.searching, { q: value }));
-    try {
-      const parsed = await parseSearchQuery(value);
-      if (parsed.category) {
-        goToSearch({ ...parsed, query: value, relation: null });
-        return;
-      }
-      const response = await askAssistant(value, lang);
-      setAssistant(response);
-      setMessage(response.question);
-    } catch {
-      setMessage(t.hero.assistantDown);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!busy) void runSearch(query);
-  }
-
-  function chooseOption(opt: AssistantOption) {
-    if (opt.action === "close") {
-      setAssistant(null);
-      setMessage("");
+    const value = query.trim();
+    if (!value) {
+      setMessage(t.hero.emptyQuery);
       return;
     }
-    if (opt.action === "sos-send") {
-      setAssistant(null);
-      setMessage(t.hero.sosSent);
-      return;
-    }
-    if (opt.ask) {
-      setQuery(opt.ask);
-      void runSearch(opt.ask);
-      return;
-    }
-    if (opt.category) {
-      goToSearch({
-        query: opt.label,
-        type: "category",
-        category: opt.category,
-        intent: opt.intent ?? null,
-        location: opt.location ?? null,
-        relation: null,
-      });
-      return;
-    }
-    setQuery(opt.label);
-    void runSearch(opt.label);
+    goToSearch(value);
   }
 
   function pickExample(step: Step) {
@@ -169,7 +117,7 @@ export default function Hero() {
             onChange={(e) => setQuery(e.target.value)}
             autoComplete="off"
           />
-          <button type="submit" aria-label={t.hero.searchSubmit} disabled={busy || query.trim() === ""}>
+          <button type="submit" aria-label={t.hero.searchSubmit} disabled={query.trim() === ""}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
@@ -177,20 +125,6 @@ export default function Hero() {
         </form>
         <div id="msg" aria-live="polite">{message}</div>
 
-        {assistant && assistant.options.length > 0 && (
-          <div className="assistant-options" aria-live="polite">
-            {assistant.options.map((opt) => (
-              <button
-                key={opt.label}
-                type="button"
-                className={`assistant-option${opt.danger ? " danger" : ""}${opt.success ? " success" : ""}`}
-                onClick={() => chooseOption(opt)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        )}
         <div className="hero__dots" aria-label={t.hero.coverLabel}>
           {HERO_SLIDES.map((item, i) => (
             <button

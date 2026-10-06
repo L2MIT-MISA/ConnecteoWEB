@@ -1,38 +1,25 @@
-import type { PlaceResult } from "../../pages/Search/searchTypes";
+import type { Lieu } from "../../pages/Search/searchTypes";
 
-export type Tone = "ok" | "warn" | "bad";
+export const fmt1 = (v: number) => v.toFixed(1).replace(".", ",");
+export const distance = (m: number) => (m >= 1000 ? `${fmt1(m / 1000)} km` : `${Math.round(m)} m`);
+export const plur = (n: number, un: string, plusieurs: string) => `${n} ${n > 1 ? plusieurs : un}`;
 
-type Operator = PlaceResult["connectivityDetails"]["operators"][string];
-
-export function connectivityTone(place: PlaceResult): Tone {
-  const technologies = place.connectivityDetails?.summary?.technologies_available ?? [];
-  if (!place.connectivityDetails?.available || technologies.length === 0) return "bad";
-  return technologies.includes("4G") || technologies.includes("5G") ? "ok" : "warn";
+export function hueDe(texte: string) {
+  return [...texte].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 360;
 }
 
-export function connectivityLabel(place: PlaceResult) {
-  return connectivityTone(place) === "bad" ? "Aucun réseau" : place.connectivity;
+export function typeDe(l: Lieu) {
+  const brut = l.categorie ?? l.niveau;
+  if (!brut) return null;
+  const fin = brut.split(".").pop() ?? brut;
+  const t = fin.replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-export function formatType(type: string) {
-  const last = type.split(".").pop() ?? type;
-  return last.replace(/_/g, " ");
+export function libellePrecision(l: Lieu) {
+  return l.approximatif ? "Approximative (centre de la zone)" : "Précise";
 }
 
-export function formatOperator(name: string) {
-  return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-}
-
-export function nearestTower(operator: Operator) {
-  const towers = Object.values(operator.nearest_towers_by_technology ?? {}).filter((tower) => tower !== null);
-  if (towers.length === 0) return null;
-  return towers.reduce((best, tower) => (tower.distance_meters < best.distance_meters ? tower : best));
-}
-
-export function formatMeters(meters: number) {
-  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`;
-}
-
-export function safeWebsite(url: string) {
-  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+export function urlHttp(u?: string | null) {
+  return u && /^https?:\/\//i.test(u) ? u : null;
 }

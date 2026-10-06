@@ -326,7 +326,7 @@ const RAYON_KM = 10;
 // ============================================================
 // COMPOSANT PRINCIPAL
 // ============================================================
-function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
+function ConnecteoMap({ lieux = [], carte = null, selected = null, onSelect }: any) {
     const [pylones, setPylones] = useState([]);
     const [pyloneSelectionne, setPyloneSelectionne] = useState(null);
     const [trace, setTrace] = useState(null);
@@ -341,11 +341,29 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
 
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
+    const recentrer = () => {
+        if (!mapInstance) return;
+        if (lieux.length > 1) {
+            const bounds = new window.google.maps.LatLngBounds();
+            lieux.forEach((l) => bounds.extend(l.position));
+            mapInstance.fitBounds(bounds, 60);
+            return;
+        }
+        const centre = lieux[0]?.position
+            ?? (carte?.centre ? { lat: carte.centre.latitude, lng: carte.centre.longitude } : CENTRE);
+        mapInstance.setCenter(centre);
+        mapInstance.setZoom(carte?.zoom_suggere ?? (lieux.length ? 13 : zoomPourRayon(RAYON_KM)));
+    };
+
     useEffect(() => {
-        if (!selected || !mapInstance) return;
-        mapInstance.panTo({ lat: selected.location.latitude, lng: selected.location.longitude });
-        mapInstance.setZoom(15);
-    }, [selected, mapInstance]);
+        if (!mapInstance) return;
+        if (selected) {
+            mapInstance.panTo(selected.position);
+            mapInstance.setZoom(15);
+        } else {
+            recentrer();
+        }
+    }, [selected, lieux, mapInstance]);
 
     // ----------------------------------------------------------
     // Charge les pylônes dans une bounding box
@@ -375,9 +393,9 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
     // Chargement initial autour d'Antananarivo
     // ----------------------------------------------------------
     useEffect(() => {
-        const bbox = bboxAutourDe(CENTRE.lat, CENTRE.lng, RAYON_KM);
-        chargerPylonesDansBbox(bbox);
-    }, []);
+        const c = selected?.position ?? lieux[0]?.position ?? CENTRE;
+        chargerPylonesDansBbox(bboxAutourDe(c.lat, c.lng, RAYON_KM));
+    }, [selected, lieux]);
 
     // ----------------------------------------------------------
     // Itinéraire
@@ -429,32 +447,21 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
                         if (e.map && !mapInstance) setMapInstance(e.map);
                     }}
                 >
-                    {/* Résultats de la recherche principale */}
-                    {results.map((result) => (
-                        <AdvancedMarker
-                            key={`result-${result.id}`}
-                            position={{ lat: result.location.latitude, lng: result.location.longitude }}
-                            title={result.name}
-                            onClick={() => onSelect?.(result)}
-                            zIndex={2000}
-                        >
-                            <div className={`result-map-marker ${selected?.id === result.id ? 'selected' : ''}`}>●</div>
-                        </AdvancedMarker>
-                    ))}
-
-                    {selected && (
-                        <InfoWindow
-                            position={{ lat: selected.location.latitude, lng: selected.location.longitude }}
-                            onCloseClick={() => onSelect?.(null)}
-                            pixelOffset={[0, -34]}
-                        >
-                            <div className="result-map-popup">
-                                <strong>{selected.name}</strong>
-                                <span>{selected.address}</span>
-                                <em>{selected.connectivity}</em>
-                            </div>
-                        </InfoWindow>
-                    )}
+                    {/* Lieux trouvés */}
+                    {lieux.map((l, i) => {
+                        const sel = selected?.id === l.id;
+                        return (
+                            <AdvancedMarker
+                                key={`lieu-${l.id}`}
+                                position={l.position}
+                                title={l.nom}
+                                onClick={() => onSelect?.(l)}
+                                zIndex={sel ? 3000 : 2000}
+                            >
+                                <div className={`sr-pin${sel ? ' sel' : ''}${selected && !sel ? ' dim' : ''}${l.approximatif ? ' approx' : ''}`}>{i + 1}</div>
+                            </AdvancedMarker>
+                        );
+                    })}
 
                     {/* Pylônes */}
                     {pylones.map((pylone, i) => {
@@ -513,6 +520,23 @@ function ConnecteoMap({ results = [], selected = null, onSelect }: any) {
                     <ZoomControls />
                 </Map>
             </APIProvider>
+
+            {selected && (
+                <div className="sr-map-name">
+                    <strong>{selected.nom}</strong>
+                    {selected.sousTitre && <span>{selected.sousTitre}</span>}
+                </div>
+            )}
+
+            <div className="sr-legend" aria-label="Légende des opérateurs">
+                <span><i style={{ background: '#E8772E' }} />Orange</span>
+                <span><i style={{ background: '#1F5FBF' }} />Telma</span>
+                <span><i style={{ background: '#B3234F' }} />Airtel</span>
+            </div>
+
+            <button type="button" className="sr-recenter" aria-label="Recentrer sur les résultats" onClick={recentrer}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" /></svg>
+            </button>
 
             <PanneauItineraire
                 onCalculer={handleCalculer}

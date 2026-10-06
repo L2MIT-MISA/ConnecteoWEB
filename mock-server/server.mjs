@@ -1,110 +1,21 @@
-// Faux backend Connecteo : permet de développer le front sans serveur ni base de données.
+// Faux backend Connecteo : permet de développer le front sans IA, sans serveur ni base de données.
 // Aucune dépendance (Node 18+). Pour tout enlever : supprimer ce dossier.
 //
-// Routes simulées (mêmes chemins et mêmes formats que le vrai projet) :
-//   POST /functions/v1/search   -> edge function Supabase "search" (analyse de la requête)
-//   POST /search                -> backend Python (liste des lieux + connectivité)
+// Routes simulées :
+//   POST /assistant             -> IA (voir ia-mock.mjs) : JSON { requete, reponse, lieux, carte, ... }
+//   GET  /mock-images/:i-:k.svg -> photos de démo référencées par les lieux
 //   GET  /api/pylones/bbox      -> backend Python + Neo4j (pylônes dans une zone)
 //   GET  /api/pylones           -> backend Python + Neo4j (tous les pylônes)
 //
 // Options (variables d'environnement) :
 //   PORT=8000        port d'écoute
-//   DELAY_MS=300     délai artificiel avant chaque réponse (pour voir les loaders)
-//   MOCK_STRICT=0    accepte toutes les catégories (par défaut, on imite le vrai backend,
-//                    qui refuse certaines catégories avec une erreur 400)
+//   DELAY_MS=600     délai artificiel avant chaque réponse (pour voir les loaders)
 
 import http from "node:http";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { imageDemo, simulerIA } from "./ia-mock.mjs";
 
-const DIR = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 8000;
-const DELAY_MS = process.env.DELAY_MS !== undefined ? Number(process.env.DELAY_MS) : 300;
-const STRICT = process.env.MOCK_STRICT !== "0";
-
-// ---------------------------------------------------------------------------
-// 1) Edge function "search" : copie simplifiée de supabase/functions/search
-// ---------------------------------------------------------------------------
-const CATEGORY_ALIASES = {
-  restaurant: ["restaurant", "resto", "restauration", "snack", "fast food", "cafe", "manger"],
-  hotel: ["hotel", "hebergement", "dormir"],
-  bank: ["banque", "distributeur", "retirer"],
-  pharmacy: ["pharmacie", "medicament"],
-  hospital: ["hopital", "clinique", "soigner"],
-  gas_station: ["station service", "station-service", "essence", "plein"],
-};
-
-function normalize(text) {
-  return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-}
-
-function parseQuery(query) {
-  const text = normalize(query);
-  const category =
-    Object.entries(CATEGORY_ALIASES).find(([, aliases]) => aliases.some((a) => text.includes(a)))?.[0] ?? null;
-  const location = text.match(/(?:\ba|\bdans|\bsur|\bpres de|\bproche de)\s+(.+)$/)?.[1]?.trim() ?? null;
-  return {
-    query,
-    type: category ? "category" : location ? "place" : "unknown",
-    category,
-    intent: null,
-    location,
-    location_verified: location ? true : null,
-    place: location,
-    relation: null,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// 2) POST /search : mêmes catégories acceptées que backend/search/main.py
-// ---------------------------------------------------------------------------
-const CATEGORIES_GEOAPIFY = {
-  restaurant: "catering.restaurant", fast_food: "catering.fast_food", "fast food": "catering.fast_food",
-  bar: "catering.bar",
-  pharmacie: "healthcare.pharmacy", pharmacy: "healthcare.pharmacy",
-  hopital: "healthcare.hospital", "hôpital": "healthcare.hospital", hospital: "healthcare.hospital",
-  clinique: "healthcare.clinic_or_praxis", medecin: "healthcare.clinic_or_praxis",
-  "médecin": "healthcare.clinic_or_praxis", dentiste: "healthcare.dentist",
-  hotel: "accommodation.hotel", "hôtel": "accommodation.hotel", hostel: "accommodation.hostel",
-  auberge: "accommodation.guest_house", motel: "accommodation.motel",
-  supermarche: "commercial.supermarket", "supermarché": "commercial.supermarket",
-  magasin: "commercial", boutique: "commercial", shopping: "commercial",
-  "centre commercial": "commercial.shopping_mall", boulangerie: "commercial.bakery",
-  ecole: "education.school", "école": "education.school", lycee: "education.school",
-  "lycée": "education.school", universite: "education.university",
-  "université": "education.university", college: "education.college", "collège": "education.college",
-  banque: "service.financial.bank", atm: "service.financial.atm", distributeur: "service.financial.atm",
-  "station essence": "service.vehicle.fuel", "station service": "service.vehicle.fuel",
-  garage: "service.vehicle.repair",
-  parking: "parking", "station de recharge": "service.vehicle.charging_station",
-  bus: "public_transport.bus", gare: "public_transport.train",
-  aeroport: "airport", "aéroport": "airport",
-  musee: "entertainment.museum", "musée": "entertainment.museum",
-  cinema: "entertainment.cinema", "cinéma": "entertainment.cinema",
-  parc: "leisure.park", "terrain de jeu": "leisure.playground", "salle de sport": "sport", tourisme: "tourism",
-};
-
-const LABELS = {
-  "catering.restaurant": "Restaurant", "catering.fast_food": "Fast-food", "catering.bar": "Bar",
-  "healthcare.pharmacy": "Pharmacie", "healthcare.hospital": "Hôpital",
-  "healthcare.clinic_or_praxis": "Clinique", "healthcare.dentist": "Dentiste",
-  "accommodation.hostel": "Auberge", "accommodation.guest_house": "Maison d'hôtes",
-  "accommodation.motel": "Motel", "commercial.supermarket": "Supermarché",
-  "service.financial.bank": "Banque", "service.financial.atm": "Distributeur",
-  "service.vehicle.fuel": "Station-service", "service.vehicle.repair": "Garage",
-  "education.school": "École", "education.university": "Université",
-};
-
-// Les 15 hôtels réels de backend/search/data/final_results.json servent de base.
-// Pour les autres catégories, on les réutilise sous un autre nom (marqué « démo »).
-const HOTELS = JSON.parse(fs.readFileSync(path.join(DIR, "data", "final_results.json"), "utf-8")).results;
-
-function placesFor(type) {
-  if (type === "accommodation.hotel") return HOTELS;
-  const label = LABELS[type] ?? "Lieu";
-  return HOTELS.map((h, i) => ({ ...h, id: `mock_${i + 1}`, type, name: `${label} ${h.name} (démo)` }));
-}
+const DELAY_MS = process.env.DELAY_MS !== undefined ? Number(process.env.DELAY_MS) : 600;
 
 // ---------------------------------------------------------------------------
 // 3) Pylônes : générés (pas de vraies données ici), mêmes champs que PYLON_FIELDS
@@ -119,7 +30,6 @@ function rng(seed) {
 }
 const rand = rng(42);
 const pick = (list) => list[Math.floor(rand() * list.length)];
-const hash = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
 const OWNERS = { TELMA: "Telma", ORANGE: "Orange Madagascar", AIRTEL: "Airtel Madagascar", GULFSAT: "Gulfsat Madagascar" };
 const ZONES = [
@@ -161,29 +71,7 @@ function makePylone({ code, lat, lon, techs, nom, zone }) {
 
 const PYLONES = [];
 
-// a) Les pylônes cités dans la connectivité des 15 hôtels (cohérence liste <-> carte)
-const nearby = new Map();
-for (const hotel of HOTELS) {
-  const { latitude, longitude } = hotel.location;
-  for (const [op, info] of Object.entries(hotel.connectivityDetails?.operators ?? {})) {
-    for (const [tech, tower] of Object.entries(info.nearest_towers_by_technology ?? {})) {
-      if (!tower) continue;
-      const key = `${op}|${tower.name}`;
-      if (!nearby.has(key)) {
-        const angle = ((hash(key) % 360) * Math.PI) / 180;
-        const dLat = (tower.distance_meters * Math.cos(angle)) / 111320;
-        const dLon = (tower.distance_meters * Math.sin(angle)) / (111320 * Math.cos((latitude * Math.PI) / 180));
-        nearby.set(key, { op, nom: tower.name, lat: latitude + dLat, lon: longitude + dLon, techs: new Set() });
-      }
-      nearby.get(key).techs.add(tech);
-    }
-  }
-}
-for (const t of nearby.values()) {
-  PYLONES.push(makePylone({ code: t.op, lat: t.lat, lon: t.lon, techs: t.techs, nom: t.nom, zone: ZONES[0] }));
-}
-
-// b) Pylônes de fond autour d'Antananarivo et de quelques grandes villes
+// Pylônes de fond autour d'Antananarivo et de quelques grandes villes
 for (const zone of ZONES) {
   for (let i = 0; i < zone.n; i++) {
     const code = pick(Object.keys(OWNERS));
@@ -229,33 +117,21 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "OPTIONS") { res.writeHead(204); return res.end(); }
 
-  // Edge function Supabase "search"
-  if (req.method === "POST" && url.pathname === "/functions/v1/search") {
+  // IA
+  if (req.method === "POST" && url.pathname === "/assistant") {
     const body = await readJson(req);
     await sleep(DELAY_MS);
-    if (!body || typeof body.query !== "string") return send(res, 400, { error: "query manquante" });
-    return send(res, 200, parseQuery(body.query));
+    if (!body || typeof body.texte !== "string" || !body.texte.trim()) {
+      return send(res, 400, { detail: "Le champ 'texte' est obligatoire." });
+    }
+    return send(res, 200, simulerIA(body.texte.trim(), `http://${req.headers.host}`));
   }
 
-  // Backend : recherche de lieux
-  if (req.method === "POST" && url.pathname === "/search") {
-    const data = await readJson(req);
-    // Comme FastAPI/pydantic : "query" et "type" sont obligatoires
-    if (!data || typeof data.query !== "string" || typeof data.type !== "string") {
-      return send(res, 422, { detail: "Corps invalide : 'query' et 'type' sont obligatoires." });
-    }
-    if (!data.category) return send(res, 400, { detail: "La catégorie est obligatoire." });
-    await sleep(DELAY_MS);
-
-    const keyword = data.category.trim().toLowerCase();
-    const type = CATEGORIES_GEOAPIFY[keyword] ?? (STRICT ? null : "commercial");
-    if (!type) {
-      return send(res, 400, {
-        detail: { message: "Catégorie inconnue", keyword: data.category, categories_disponibles: Object.keys(CATEGORIES_GEOAPIFY).sort() },
-      });
-    }
-    const results = placesFor(type);
-    return send(res, 200, { query: data.location || data.query, count: results.length, results });
+  // Photos de démo
+  const img = url.pathname.match(/^\/mock-images\/(\d+)-(\d+)\.svg$/);
+  if (req.method === "GET" && img) {
+    res.writeHead(200, { "Content-Type": "image/svg+xml", "Cache-Control": "max-age=3600" });
+    return res.end(imageDemo(Number(img[1]), Number(img[2])));
   }
 
   // Backend : pylônes dans une zone
@@ -283,7 +159,6 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, "127.0.0.1", () => {
   console.log(`Faux backend Connecteo sur http://127.0.0.1:${PORT}`);
-  console.log(`  ${HOTELS.length} lieux de base, ${PYLONES.length} pylônes générés`);
-  console.log(`  Mode strict : ${STRICT ? "oui (imite le vrai backend)" : "non (toutes catégories acceptées)"}`);
+  console.log(`  ${PYLONES.length} pylônes générés`);
   console.log("  Ctrl+C pour arrêter.");
 });

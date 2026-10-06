@@ -1,214 +1,110 @@
+import type { Image, Lieu, LieuIA, ReponseIA } from "../pages/Search/searchTypes";
 
-export interface AssistantOption {
-  label: string;
-  ask?: string;        // si présent : on relance l'assistant avec cette phrase
-  category?: string;   // si présent : on va sur la carte avec cette catégorie
-  location?: string;
-  intent?: string;
-  danger?: boolean;    // bouton rouge
-  success?: boolean;   // bouton vert
-  action?: "sos-send" | "close";
+const AI_URL = import.meta.env.VITE_AI_API_URL || "http://127.0.0.1:8000";
+
+export async function demanderIA(texte: string, signal?: AbortSignal): Promise<ReponseIA> {
+  const response = await fetch(`${AI_URL}/assistant`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ texte }),
+    signal,
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return (await response.json()) as ReponseIA;
 }
 
-export interface AssistantResponse {
-  question: string;            // la phrase de l'assistant
-  options: AssistantOption[];  // les suggestions à cliquer
+const urlOk = (s: string) => /^(https?:\/\/|data:image\/|\/)/i.test(s);
+
+// Le référentiel renvoie des noms en MAJUSCULES : on les remet en casse titre.
+function aTitre(s?: string | null) {
+  if (!s) return "";
+  if (s !== s.toUpperCase()) return s;
+  return s.toLowerCase().replace(/(^|[\s'’-])(\p{L})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
 }
 
-// Langues de l'assistant (mêmes codes que src/i18n). */
-export type AssistantLang = "MG" | "FR" | "EN";
-
-//données pour les simulations de l'IA (français — référence)
-const FLOWS_FR: Record<string, AssistantResponse> = {
-  sante: {
-    question: "D'accord. Que cherchez-vous exactement ?",
-    options: [
-      { label: "Un dentiste", category: "dentist" }, 
-      { label: "Un hôpital", category: "hospital" },
-      { label: "Une pharmacie", category: "pharmacy" },
-      { label: "C'est une urgence", ask: "urgence", danger: true },
-    ],
-  },
-  urgence: {
-    question: "Confirmer l'envoi d'une alerte prioritaire ?",
-    options: [
-      { label: "Oui, envoyer", action: "sos-send", success: true },
-      { label: "Annuler", action: "close" },
-    ],
-  },
-  ressources: {
-    question: "Très bien. Que voulez-vous trouver ?",
-    options: [
-      { label: "Les producteurs", intent: "producteurs" },
-      { label: "Les marchés", intent: "marches" },
-      { label: "Les coopératives", intent: "cooperatives" },
-    ],
-  },
-  lieu: {
-    question: "Vers où souhaitez-vous aller ?",
-    options: [
-      { label: "Itaosy", location: "Itaosy" },
-      { label: "Antananarivo", location: "Antananarivo" },
-      { label: "Mahitsy", location: "Mahitsy" },
-      { label: "Autre destination", ask: "je cherche un village" },
-    ],
-  },
-  general: {
-    question: "Pouvez-vous préciser votre besoin ?",
-    options: [
-      { label: "Un lieu", ask: "je cherche un lieu" },
-      { label: "Une ressource", ask: "une ressource" },
-      { label: "Un service de santé", ask: "un service de santé" },
-      { label: "Une urgence", ask: "urgence", danger: true },
-    ],
-  },
-  detresse: {
-    question:
-      "Ça a l'air difficile en ce moment, et vous n'êtes pas seul(e). " +
-      "Parlez-en à une personne de confiance ou aux services d'aide de votre région.",
-    options: [
-      { label: "Envoyer une alerte SOS", ask: "urgence", danger: true },
-      { label: "Fermer", action: "close" },
-    ],
-  },
-};
-
-/* Scénarios traduits (mêmes clés techniques category/intent/location/action
-   que FLOWS_FR — seuls les textes affichés changent). */
-const FLOWS_MG: Record<string, AssistantResponse> | null = {
-  sante: {
-    question: "Tsara. Inona marina no tadiavinao ?",
-    options: [
-      { label: "Mpitsabo nify", category: "dentist" },
-      { label: "Hopitaly", category: "hospital" },
-      { label: "Farmasia", category: "pharmacy" },
-      { label: "Maika", ask: "maika", danger: true },
-    ],
-  },
-  urgence: {
-    question: "Hamarino ny fandefasana fanairana ?",
-    options: [
-      { label: "Eny, alefaso", action: "sos-send", success: true },
-      { label: "Foano", action: "close" },
-    ],
-  },
-  ressources: {
-    question: "Tsara. Inona no tianao ho hita ?",
-    options: [
-      { label: "Ny mpamokatra", intent: "producteurs" },
-      { label: "Ny tsena", intent: "marches" },
-      { label: "Ny kaoperativa", intent: "cooperatives" },
-    ],
-  },
-  lieu: {
-    question: "Aiza no tianao haleha ?",
-    options: [
-      { label: "Itaosy", location: "Itaosy" },
-      { label: "Antananarivo", location: "Antananarivo" },
-      { label: "Mahitsy", location: "Mahitsy" },
-      { label: "Toerana hafa", ask: "mitady tanana" },
-    ],
-  },
-  general: {
-    question: "Afaka manazava ny ilainao ve ianao ?",
-    options: [
-      { label: "Toerana", ask: "mitady toerana" },
-      { label: "Harena", ask: "mitady harena" },
-      { label: "Fahasalamana", ask: "fahasalamana" },
-      { label: "Maika", ask: "maika", danger: true },
-    ],
-  },
-  detresse: {
-    question:
-      "Toa sarotra ny zava-misy ankehitriny, ary tsy irery ianao. " +
-      "Miresaha amin'ny olona atokisanao na amin'ny tolotra fanampiana any aminareo.",
-    options: [
-      { label: "Alefaso ny fanairana SOS", ask: "maika", danger: true },
-      { label: "Akatona", action: "close" },
-    ],
-  },
-};
-const FLOWS_EN: Record<string, AssistantResponse> | null = {
-  sante: {
-    question: "Got it. What exactly are you looking for?",
-    options: [
-      { label: "A dentist", category: "dentist" },
-      { label: "A hospital", category: "hospital" },
-      { label: "A pharmacy", category: "pharmacy" },
-      { label: "It's urgent", ask: "urgent", danger: true },
-    ],
-  },
-  urgence: {
-    question: "Confirm sending a priority alert?",
-    options: [
-      { label: "Yes, send it", action: "sos-send", success: true },
-      { label: "Cancel", action: "close" },
-    ],
-  },
-  ressources: {
-    question: "Great. What do you want to find?",
-    options: [
-      { label: "Producers", intent: "producteurs" },
-      { label: "Markets", intent: "marches" },
-      { label: "Cooperatives", intent: "cooperatives" },
-    ],
-  },
-  lieu: {
-    question: "Where would you like to go?",
-    options: [
-      { label: "Itaosy", location: "Itaosy" },
-      { label: "Antananarivo", location: "Antananarivo" },
-      { label: "Mahitsy", location: "Mahitsy" },
-      { label: "Another place", ask: "looking for a village" },
-    ],
-  },
-  general: {
-    question: "Could you clarify what you need?",
-    options: [
-      { label: "A place", ask: "looking for a place" },
-      { label: "A resource", ask: "looking for a resource" },
-      { label: "A health service", ask: "a health service" },
-      { label: "An emergency", ask: "urgent", danger: true },
-    ],
-  },
-  detresse: {
-    question:
-      "Things seem difficult right now, and you are not alone. " +
-      "Talk to someone you trust or to support services in your area.",
-    options: [
-      { label: "Send an SOS alert", ask: "urgent", danger: true },
-      { label: "Close", action: "close" },
-    ],
-  },
-};
-
-function flowsFor(lang: AssistantLang): Record<string, AssistantResponse> {
-  if (lang === "MG" && FLOWS_MG) return FLOWS_MG;
-  if (lang === "EN" && FLOWS_EN) return FLOWS_EN;
-  return FLOWS_FR;
+function texteAvis(a: unknown): string | null {
+  if (typeof a === "string") return a;
+  if (a && typeof a === "object") {
+    const o = a as Record<string, unknown>;
+    const t = o.texte ?? o.text ?? o.commentaire;
+    return typeof t === "string" ? t : null;
+  }
+  return null;
 }
 
-const DISTRESS_WORDS = ["mourir", "suicide", "me tuer", "en finir", "plus envie de vivre"];
+function normaliser(l: LieuIA, index: number, approximatif: boolean): Lieu | null {
+  const c = l.coordonnees;
+  if (!c || !Number.isFinite(c.latitude) || !Number.isFinite(c.longitude)) return null;
 
-export function isDistress(query: string): boolean {
-  const t = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  return DISTRESS_WORDS.some((w) => t.includes(w));
+  const images: Image[] = (l.images ?? [])
+    .map((i) => (typeof i === "string" ? { url: i, legende: null } : { url: i.url, legende: i.legende ?? null }))
+    .filter((i) => typeof i.url === "string" && urlOk(i.url));
+  if (l.image_source && urlOk(l.image_source) && !images.some((i) => i.url === l.image_source)) {
+    images.push({ url: l.image_source, legende: null });
+  }
+
+  const avisListe = Array.isArray(l.avis) ? l.avis.map(texteAvis).filter((t): t is string => !!t) : [];
+  const district = aTitre(l.district);
+  const region = aTitre(l.region);
+
+  return {
+    id: `${l.code_officiel ?? l.nom}-${index}`,
+    nom: aTitre(l.nom),
+    sousTitre: [district, region].filter(Boolean).join(", "),
+    niveau: l.niveau ?? null,
+    categorie: l.categorie ?? null,
+    region: region || null,
+    district: district || null,
+    codeOfficiel: l.code_officiel ?? null,
+    description: l.description ?? null,
+    position: { lat: c.latitude, lng: c.longitude },
+    precision: c.precision ?? null,
+    approximatif: approximatif || /repli|approx/i.test(c.precision ?? ""),
+    noteGoogle: typeof l.note_google === "number" ? l.note_google : null,
+    avis: avisListe,
+    nbAvis: typeof l.avis === "number" ? l.avis : null,
+    sourcesCitees: l.sources_citees ?? [],
+    images,
+  };
 }
 
-function detectFlow(query: string): string {
-  const t = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  if (DISTRESS_WORDS.some((w) => t.includes(w))) return "detresse";
-  if (/(sos|urgence|secours|danger|accident|aide\b)/.test(t)) return "urgence";
-  if (/(malade|mal\b|douleur|sante|fievre|dents|dent|tete|ventre|dos|medecin|docteur|hopital|pharmacie)/.test(t)) return "sante";
-  if (/(cacao|vanille|riz|cafe|ressource|producteur|marche|cooperative)/.test(t)) return "ressources";
-  if (/(lieu|village|aller|route|itineraire|chemin|ou est|itaosy|antsirabe|toamasina|mahitsy)/.test(t)) return "lieu";
-  return "general";
+// lieux (triés par pertinence) puis lieux_approximative sans les doublons
+export function lieuxDe(rep: ReponseIA): Lieu[] {
+  const principaux = [...(rep.lieux ?? [])].sort((a, b) => (b.pertinence ?? 0) - (a.pertinence ?? 0));
+  const vus = new Set<string>();
+  const sortie: Lieu[] = [];
+  const ajouter = (liste: LieuIA[], approx: boolean) => {
+    for (const l of liste) {
+      const cle = `${l.code_officiel ?? ""}|${l.nom}|${l.coordonnees?.latitude}|${l.coordonnees?.longitude}`;
+      if (vus.has(cle)) continue;
+      vus.add(cle);
+      const lieu = normaliser(l, sortie.length, approx);
+      if (lieu) sortie.push(lieu);
+    }
+  };
+  ajouter(principaux, false);
+  ajouter(rep.lieux_approximative ?? [], true);
+  return sortie;
 }
 
+// clarification / urgence / erreur : formes non figées, on cherche un texte lisible
+function texteDe(v: unknown): string | null {
+  if (!v) return null;
+  if (typeof v === "string") return v;
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    for (const k of ["message", "texte", "question"]) if (typeof o[k] === "string") return o[k] as string;
+  }
+  return null;
+}
 
-export async function askAssistant(query: string, lang: AssistantLang = "FR"): Promise<AssistantResponse> {
-  await new Promise((r) => setTimeout(r, 600)); //simule la réflexion
-  return flowsFor(lang)[detectFlow(query)];
-
-  //fetch vers l'IA 
+export function messagesDe(rep: ReponseIA): string[] {
+  const liste = [texteDe(rep.urgence), texteDe(rep.clarification), rep.reponse?.texte ?? null].filter(
+    (t): t is string => !!t,
+  );
+  if (liste.length === 0) {
+    const erreur = texteDe(rep.erreur);
+    liste.push(erreur ? `L'assistant a rencontré un problème : ${erreur}` : "Je n'ai pas trouvé de réponse pour cette demande.");
+  }
+  return liste;
 }

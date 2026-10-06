@@ -1,13 +1,10 @@
 # mock-server : faux backend pour le front Connecteo
 
-Remplace le serveur, la base de données (Neo4j) et l'edge function Supabase par un petit
-serveur local, **sans toucher au code de `src/`**. Aucune dépendance (Node 18+).
+Simule l'IA et les pylônes sans toucher au code de `src/`. Aucune dépendance (Node 18+).
 
 ## Installation (une fois)
-1. Copier ce dossier `mock-server/` à la racine du projet (à côté de `src/` et `package.json`).
-2. Copier `mock-server/env.local.example` vers `.env.local` à la racine du projet.
-3. (Conseillé) éviter de commiter le dossier par erreur :
-   `echo "mock-server/" >> .git/info/exclude`
+1. Copier `mock-server/env.local.example` vers `.env.local` à la racine du projet.
+2. (Conseillé) `echo "mock-server/" >> .git/info/exclude`
 
 ## Utilisation
 ```bash
@@ -19,18 +16,20 @@ npm run dev                   # terminal 2
 ## Ce qui est simulé
 | Appel du front | Simulé par |
 |---|---|
-| `supabase.functions.invoke("search")` | `POST /functions/v1/search` |
-| `POST /search` | 15 hôtels réels de `final_results.json` ; autres catégories : mêmes lieux renommés « (démo) » |
-| `GET /api/pylones/bbox` et `/api/pylones` | ~900 pylônes générés (dont ceux cités dans la connectivité des hôtels) |
+| `POST {VITE_AI_API_URL}/assistant` body `{ "texte": "…" }` | `simulerIA()` dans `ia-mock.mjs` |
+| photos des lieux (`images[].url`) | `GET /mock-images/:i-:k.svg` |
+| `GET /api/pylones/bbox` et `/api/pylones` | ~900 pylônes générés |
 
-Non simulé : la connexion/inscription (Supabase Auth). Nominatim, OSRM et Google Maps sont les vrais services.
+Réponses de l'IA simulée (toutes au format du JSON réel) :
+- n'importe quel texte → 15 lieux de démo à Antananarivo, avec `images`, `note_google`, `avis`, `sources_citees` ;
+- `marary` / `maroary` → cas « référentiel seul » : 1 lieu, sans image, position approximative, Google indisponible ;
+- texte de moins de 3 caractères → `statut: "clarification_necessaire"`, aucun lieu.
+
+Non simulé : connexion/inscription (Supabase Auth). Nominatim, OSRM et Google Maps sont les vrais services.
 
 ## Options
-`PORT=8001 node mock-server/server.mjs` · `DELAY_MS=0` (sans délai) · `MOCK_STRICT=0` (accepte toutes les catégories).
-
-Par défaut, le mock **imite le vrai backend** : il refuse avec une erreur 400 les catégories absentes de
-`CATEGORIES_GEOAPIFY` dans `backend/search/main.py` (voir plus bas pour `bank` et `gas_station`).
+`PORT=8001 node mock-server/server.mjs` · `DELAY_MS=0` (sans délai)
 
 ## Tout enlever
-Supprimer le dossier `mock-server/` et le fichier `.env.local` (ou y remettre les vraies valeurs).
-Le code du front n'a pas changé : il fonctionne tel quel avec le vrai back.
+Supprimer le dossier `mock-server/` et `.env.local` (ou y remettre les vraies valeurs).
+Le front appelle alors la vraie IA sur `VITE_AI_API_URL`.
