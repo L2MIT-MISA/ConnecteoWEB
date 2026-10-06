@@ -6,12 +6,9 @@ import { useSecurityData } from './useSecurityData';
 
 const CENTRE = { lat: -18.8792, lng: 47.5079 };
 
-// URL du backend Neo4j (server.js)
 const API_URL = import.meta.env.VITE_SEARCH_API_URL || 'http://127.0.0.1:3001';
 
-// ============================================================
 // Couleurs des technologies reseau
-// ============================================================
 const COULEUR_TECH = {
     '5g': '#16a34a', // vert
     '4g': '#16a34a', // vert
@@ -24,9 +21,7 @@ function couleurTech(tech) {
     return COULEUR_TECH[tech] || COULEUR_TECH.none;
 }
 
-// ============================================================
 // Cache global des pylones reseau (lat/lng/tech)
-// ============================================================
 let _cacheReseau = null;
 let _cachePromise = null;
 
@@ -51,9 +46,7 @@ async function chargerPylonesReseau() {
     return _cachePromise;
 }
 
-// ============================================================
 // Distance approx (Haversine) en metres
-// ============================================================
 function distanceM(a, b) {
     const R = 6371000;
     const dLat = (b.lat - a.lat) * Math.PI / 180;
@@ -82,9 +75,7 @@ function techDuPoint(point, pylones) {
     return bestD <= SEUIL_M ? bestTech : 'none';
 }
 
-// ============================================================
 // Decoupe une polyligne en segments de meme couleur
-// ============================================================
 function decouperParReseau(points, pylones) {
     if (!points || points.length === 0) return [];
 
@@ -115,9 +106,7 @@ function decouperParReseau(points, pylones) {
     }));
 }
 
-// ============================================================
 // MODES DE TRANSPORT
-// ============================================================
 const MODES = [
     {
         id: 'car',
@@ -160,9 +149,7 @@ const MODES = [
     }
 ];
 
-// ============================================================
 // RECHERCHE DE LIEUX (Nominatim)
-// ============================================================
 async function chercherLieux(texte, limite = 5) {
     const url =
         `https://nominatim.openstreetmap.org/search?format=json&addressdetails=0&limit=${limite}` +
@@ -231,9 +218,7 @@ function formaterDuree(s) {
     return `${h} h ${String(reste).padStart(2, '0')}`;
 }
 
-// ============================================================
 // TRACE : polyligne multicolore selon la couverture reseau
-// ============================================================
 function Trace({ path }) {
     const map = useMap();
     const [pylones, setPylones] = useState(null);
@@ -332,9 +317,7 @@ function Trace({ path }) {
     return null;
 }
 
-// ============================================================
 // AJUSTER LA VUE
-// ============================================================
 function AjusterVue({ path }) {
     const map = useMap();
 
@@ -352,9 +335,7 @@ function AjusterVue({ path }) {
     return null;
 }
 
-// ============================================================
 // ALLER A UN LIEU
-// ============================================================
 function AllerA({ lieu }) {
     const map = useMap();
 
@@ -384,9 +365,7 @@ function AllerA({ lieu }) {
     return null;
 }
 
-// ============================================================
 // CONTROLES DE ZOOM
-// ============================================================
 function ZoomControls({ typeCarte, onToggleType }) {
     const map = useMap();
     const zoomer = (delta) => {
@@ -410,9 +389,7 @@ function ZoomControls({ typeCarte, onToggleType }) {
     );
 }
 
-// ============================================================
 // BARRE DE RECHERCHE
-// ============================================================
 function BarreRecherche({ lieu, onChoisir, onEffacer }) {
     const [texte, setTexte] = useState('');
     const [resultats, setResultats] = useState(null);
@@ -522,9 +499,7 @@ function BarreRecherche({ lieu, onChoisir, onEffacer }) {
     );
 }
 
-// ============================================================
 // FICHE LIEU
-// ============================================================
 function FicheLieu({ lieu, onItineraire, onFermer }) {
     return (
         <div className="place-card">
@@ -548,9 +523,7 @@ function FicheLieu({ lieu, onItineraire, onFermer }) {
     );
 }
 
-// ============================================================
 // PANNEAU ITINERAIRE
-// ============================================================
 function Panneau({ arriveeInitiale, onRechercher, onEffacer, onRetour, resultats, modeActif, onChoisirMode, chargement, erreur, destination }) {
     const [depart, setDepart] = useState('');
     const [arrivee, setArrivee] = useState(arriveeInitiale || '');
@@ -710,9 +683,7 @@ function Panneau({ arriveeInitiale, onRechercher, onEffacer, onRetour, resultats
     );
 }
 
-// ============================================================
 // COMPOSANT PRINCIPAL
-// ============================================================
 function Carte() {
     const [vue, setVue] = useState('recherche');
     const [lieu, setLieu] = useState(null);
