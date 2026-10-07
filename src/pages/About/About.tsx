@@ -1,201 +1,317 @@
+import { useEffect, useState } from "react";
 import "./About.css";
+import heroImage from "../assets/hero.jpg";
+import missionImage from "../assets/mission.jpg";
 
-export default function About() {
+interface NavigationLink {
+  label: string;
+  isActive: boolean;
+}
+
+interface ValueCard {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+interface FooterColumn {
+  title: string;
+  links: string[];
+}
+
+const navigationLinks: NavigationLink[] = [
+  { label: "Accueil", isActive: false },
+  { label: "Télécharger", isActive: false },
+  { label: "À propos", isActive: true },
+];
+
+const valueCards: ValueCard[] = [
+  {
+    icon: "↗",
+    title: "Accessible à tous",
+    description:
+      "Une interface simple et chaleureuse, facile à prendre en main dès la première visite.",
+  },
+  {
+    icon: "◔",
+    title: "Fiable par nature",
+    description:
+      "Chaque information est vérifiée et mise à jour pour que vous décidiez en toute confiance.",
+  },
+  {
+    icon: "◉",
+    title: "Ancré localement",
+    description:
+      "Conçu avec et pour les communautés malgaches, au plus près des réalités du terrain.",
+  },
+];
+
+const footerColumns: FooterColumn[] = [
+  {
+    title: "Navigation",
+    links: ["Accueil", "Télécharger", "À propos", "Se connecter"],
+  },
+  {
+    title: "Ressources",
+    links: ["Recherche", "Aide", "Contact"],
+  },
+  {
+    title: "Contact",
+    links: ["Email", "Téléphone", "Adresse", "Facebook"],
+  },
+];
+
+function About() {
+  const [activeTelecomSites, setActiveTelecomSites] = useState<number | null>(
+    null
+  );
+
+  const [totalUsers, setTotalUsers] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("http://localhost:3001/api/statistics")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Impossible de récupérer les statistiques");
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setActiveTelecomSites(data.activeTelecomSites);
+        setTotalUsers(data.totalUsers);
+      })
+      .catch((error) => {
+        console.error("Erreur statistiques:", error);
+      });
+  }, []);
+
   return (
-    <div id="page-about" className="page active">
-      <div id="aboutScene"></div>
+    <div className="about-page">
+      {/* ---------- Barre de navigation ---------- */}
 
-      <main className="content">
-        <section className="hero-section">
-          <div className="badge">
-            <span className="dot"></span>
-            Notre histoire
-          </div>
+      {/* ---------- Hero ---------- */}
+      <section className="about-hero">
+        <img className="about-hero__background" src={heroImage} alt="" />
+        <div className="about-hero__overlay" />
 
-          <h1>
-            Connecter ceux que
+        <div className="about-hero__content">
+          <span className="about-eyebrow about-eyebrow--light">
+            À propos de Connectéo
+          </span>
+
+          <h1 className="about-hero__title">
+            L'information utile
             <br />
-            <span className="accent">le réseau oublie.</span>
+            rapproche les citoyens.
           </h1>
 
-          <p>
-            Connectéo est né d'un constat simple : à Madagascar, des millions
-            de personnes vivent dans des zones blanches, sans accès fiable à
-            Internet ni au réseau mobile. Notre mission est de leur redonner
-            une voix, un lien, et un accès aux services essentiels.
-          </p>
-        </section>
-
-        <div className="cards-grid">
-          <div className="info-card">
-            <div className="icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-            </div>
-
-            <h3>Un réseau maillé</h3>
-
-            <p>
-              Grâce à la technologie LoRa, chaque téléphone devient un nœud du
-              réseau. Les messages rebondissent de proche en proche pour
-              atteindre leur destination, même sans couverture télécom.
-            </p>
-          </div>
-
-          <div className="info-card">
-            <div className="icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </div>
-
-            <h3>Pour tous les citoyens</h3>
-
-            <p>
-              Muet, aveugle, analphabète ou simplement éloigné : chacun trouve
-              son parcours. L'application s'adapte en amont pour garantir un
-              accès universel aux services de santé, d'éducation et
-              d'administration.
-            </p>
-          </div>
-
-          <div className="info-card">
-            <div className="icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-              </svg>
-            </div>
-
-            <h3>En cas d'urgence</h3>
-
-            <p>
-              Un bouton SOS transmet une alerte prioritaire en moins de 1,2
-              seconde, même en zone blanche isolée. Les secours et les proches
-              sont prévenus instantanément, où qu'ils soient.
-            </p>
-          </div>
-        </div>
-
-        <div className="mission">
-          <h2>Notre mission</h2>
-
-          <p>
-            Nous croyons que la connexion ne devrait jamais être un privilège.
-            Connectéo œuvre chaque jour pour bâtir une infrastructure
-            résiliente, inclusive et respectueuse des réalités locales — afin
-            que chaque village, chaque famille, chaque personne puisse rester
-            reliée au monde, quoi qu'il arrive.
+          <p className="about-hero__text">
+            Connectéo met l'essentiel à portée de main : trouvez en quelques
+            secondes le bon service, le bon lieu et la bonne démarche, où que
+            vous soyez à Madagascar.
           </p>
         </div>
 
-        <section className="contact-section">
-          <h2 className="contact-title">Nous contacter</h2>
+        <span className="about-hero__caption">
+          Pensé à Madagascar, utile à chaque citoyen.
+        </span>
+      </section>
 
-          <div className="contact-grid">
-            <a
-              href="mailto:contact@connecteo.mg"
-              className="contact-card"
+      {/* ---------- Mission ---------- */}
+      <section className="about-mission">
+        <div className="about-mission__media">
+          <img
+            src={missionImage}
+            alt="Une conseillère accompagne une famille"
+          />
+        </div>
+
+        <div className="about-mission__content">
+          <span className="about-eyebrow">Notre mission</span>
+
+          <h2 className="about-mission__title">
+            Transformer une question en prochaine étape.
+          </h2>
+
+          <p className="about-mission__text">
+            Derrière chaque recherche, il y a un besoin bien réel : une
+            démarche à faire, un service à trouver, une décision à prendre.
+            Connectéo transforme ces questions en réponses claires et en
+            étapes concrètes, pour que personne n'avance seul.
+          </p>
+
+          <div className="about-mission__note">
+            <span className="about-mission__note-icon">›</span>
+
+            <span>
+              Des réponses claires, des étapes concrètes,
+              <br />
+              un seul endroit.
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- Chiffres ---------- */}
+      <section className="about-stats">
+        <span className="about-eyebrow about-eyebrow--light">
+          Nos chiffres
+        </span>
+
+        <h2 className="about-stats__title">
+          Des résultats qui comptent.
+        </h2>
+
+        <div className="about-stats__grid">
+          {/* 1 — Citoyens dynamiques */}
+          <div className="about-stats__card">
+            <strong className="about-stats__value">
+              {totalUsers !== null
+                ? totalUsers.toLocaleString("fr-FR")
+                : "..."}
+            </strong>
+
+            <span className="about-stats__label">
+              Citoyens qui nous font confiance
+            </span>
+          </div>
+
+          {/* 2 — Sites télécom dynamiques */}
+          <div className="about-stats__card">
+            <strong className="about-stats__value">
+              {activeTelecomSites !== null
+                ? activeTelecomSites.toLocaleString("fr-FR")
+                : "..."}
+            </strong>
+
+            <span className="about-stats__label">
+              Sites télécom actifs
+            </span>
+          </div>
+
+          {/* 3 — Régions */}
+          <div className="about-stats__card">
+            <strong className="about-stats__value">23</strong>
+
+            <span className="about-stats__label">
+              Régions couvertes à Madagascar
+            </span>
+          </div>
+
+          {/* 4 — Satisfaction */}
+          <div className="about-stats__card">
+            <strong className="about-stats__value">94 %</strong>
+
+            <span className="about-stats__label">
+              D'utilisateurs satisfaits
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- Valeurs ---------- */}
+      <section className="about-values">
+        <span className="about-eyebrow about-eyebrow--centered">
+          Nos valeurs
+        </span>
+
+        <h2 className="about-values__title">
+          Des valeurs vécues au quotidien.
+        </h2>
+
+        <div className="about-values__grid">
+          {valueCards.map((card) => (
+            <article key={card.title} className="about-values__card">
+              <span className="about-values__icon">{card.icon}</span>
+
+              <h3 className="about-values__card-title">
+                {card.title}
+              </h3>
+
+              <p className="about-values__text">
+                {card.description}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------- Appel à l'action ---------- */}
+      <section className="about-cta">
+        <div className="about-cta__content">
+          <h2 className="about-cta__title">
+            Construisons un service plus proche.
+          </h2>
+
+          <p className="about-cta__text">
+            Votre avis façonne Connectéo. Dites-nous ce qui vous aiderait le
+            plus : nous construisons ce service avec vous, jamais à votre
+            place.
+          </p>
+        </div>
+
+        <div className="about-cta__actions">
+          <button
+            type="button"
+            className="about-button about-button--light"
+          >
+            Télécharger
+          </button>
+
+          <button
+            type="button"
+            className="about-button about-button--dark"
+          >
+            Nous contacter
+          </button>
+        </div>
+      </section>
+
+      {/* ---------- Pied de page ---------- */}
+      <footer className="about-footer">
+        <div className="about-footer__top">
+          <div className="about-footer__brand">
+            <div className="about-brand">
+              <span className="about-logo">C</span>
+              <span className="about-brand__name">Connectéo</span>
+            </div>
+
+            <p className="about-footer__tagline">
+              Connectéo rapproche chaque citoyen de l'information utile,
+              simplement et près de chez lui.
+            </p>
+          </div>
+
+          {footerColumns.map((column) => (
+            <div
+              key={column.title}
+              className="about-footer__column"
             >
-              <div className="icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
+              <h4 className="about-footer__column-title">
+                {column.title}
+              </h4>
+
+              {column.links.map((link) => (
+                <a
+                  key={link}
+                  href="#"
+                  className="about-footer__link"
                 >
-                  <rect x="2" y="4" width="20" height="16" rx="2" />
-                  <path d="m22 6-10 7L2 6" />
-                </svg>
-              </div>
+                  {link}
+                </a>
+              ))}
+            </div>
+          ))}
+        </div>
 
-              <div className="label">Email</div>
-              <div className="value">contact@connecteo.mg</div>
-            </a>
-
-            <a href="tel:+261340000000" className="contact-card">
-              <div className="icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2.1z" />
-                </svg>
-              </div>
-
-              <div className="label">Téléphone</div>
-              <div className="value">+261 34 00 000 00</div>
-            </a>
-
-            <a href="#" className="contact-card">
-              <div className="icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-              </div>
-
-              <div className="label">Adresse</div>
-              <div className="value">Antananarivo, Madagascar</div>
-            </a>
-
-            <a href="#" className="contact-card">
-              <div className="icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-              </div>
-
-              <div className="label">Site web</div>
-              <div className="value">www.connecteo.mg</div>
-            </a>
-          </div>
-        </section>
-      </main>
-
-      <footer>
-        <p>
-          © 2026 Connectéo — Réseau maillé décentralisé pour Madagascar. Tous
-          droits réservés.
-        </p>
+        <div className="about-footer__bottom">
+          <span>© 2026 Connectéo. Tous droits réservés.</span>
+          <span>Fait avec soin à Madagascar</span>
+        </div>
       </footer>
     </div>
   );
 }
+
+export default About;
